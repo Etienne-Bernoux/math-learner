@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>× Tables - Quiz Multiplication</title>
+  <title>MathQuiz - Calcul Mental</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -28,18 +28,66 @@
       expert: { label: "Expert",  timer: 4,  multiplier: 2,   color: "from-red-500 to-pink-500" },
     };
 
-    function generateQuestions(selectedTables) {
+    const MODES = {
+      multiplication: { label: "Multiplication", symbol: "×", icon: "✕", color: "from-purple-500 to-pink-500" },
+      addition:       { label: "Addition",       symbol: "+", icon: "+", color: "from-blue-500 to-cyan-500" },
+      subtraction:    { label: "Soustraction",   symbol: "−", icon: "−", color: "from-orange-500 to-red-500" },
+    };
+
+    function generateQuestions(mode, config) {
       const pool = [];
-      selectedTables.forEach(table => {
-        for (let i = 2; i <= 12; i++) {
-          pool.push({ a: table, b: i });
+
+      if (mode === 'multiplication') {
+        config.tables.forEach(table => {
+          for (let i = 2; i <= 12; i++) {
+            pool.push({ a: table, b: i, answer: table * i });
+          }
+        });
+      } else if (mode === 'addition') {
+        for (let i = 0; i < 50; i++) {
+          const a = Math.floor(Math.random() * (config.max - config.min + 1)) + config.min;
+          const b = Math.floor(Math.random() * (config.max - config.min + 1)) + config.min;
+          pool.push({ a, b, answer: a + b });
         }
-      });
+      } else if (mode === 'subtraction') {
+        for (let i = 0; i < 50; i++) {
+          const a = Math.floor(Math.random() * (config.max - config.min + 1)) + config.min;
+          const b = Math.floor(Math.random() * (a - config.min + 1)) + config.min;
+          pool.push({ a, b, answer: a - b });
+        }
+      }
+
       const shuffled = [...pool].sort(() => Math.random() - 0.5);
       return shuffled.slice(0, Math.min(QUESTIONS_COUNT, shuffled.length));
     }
 
-    function ConfigScreen({ onStart }) {
+    // Menu Screen
+    function MenuScreen({ onSelect }) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+            <h1 className="text-3xl font-bold text-white text-center mb-2">🧮 MathQuiz</h1>
+            <p className="text-purple-200 text-center mb-8">Choisis ton entraînement</p>
+
+            <div className="space-y-4">
+              {Object.entries(MODES).map(([key, mode]) => (
+                <button
+                  key={key}
+                  onClick={() => onSelect(key)}
+                  className={`w-full py-5 rounded-2xl font-bold text-xl bg-gradient-to-r ${mode.color} text-white shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-3`}
+                >
+                  <span className="text-2xl">{mode.icon}</span>
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Config Screen for Multiplication
+    function MultiplicationConfig({ onStart, onBack }) {
       const [selected, setSelected] = useState(new Set([2, 3, 4, 5]));
       const [difficulty, setDifficulty] = useState('normal');
 
@@ -56,8 +104,9 @@
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
-            <h1 className="text-3xl font-bold text-white text-center mb-2">× Tables</h1>
-            <p className="text-purple-200 text-center mb-6">Sélectionne les tables à réviser</p>
+            <button onClick={onBack} className="text-purple-300 hover:text-white mb-4 transition">← Retour</button>
+            <h1 className="text-2xl font-bold text-white text-center mb-2">× Multiplication</h1>
+            <p className="text-purple-200 text-center mb-6">Sélectionne les tables</p>
 
             <div className="flex justify-center gap-2 mb-4">
               <button onClick={selectAll} className="text-sm text-purple-300 hover:text-white transition">Tout</button>
@@ -81,28 +130,10 @@
               ))}
             </div>
 
-            <div className="mb-8">
-              <p className="text-purple-200 text-center text-sm mb-3">Difficulté</p>
-              <div className="flex gap-2">
-                {Object.entries(DIFFICULTY).map(([key, val]) => (
-                  <button
-                    key={key}
-                    onClick={() => setDifficulty(key)}
-                    className={`flex-1 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
-                      difficulty === key
-                        ? `bg-gradient-to-r ${val.color} text-white shadow-lg scale-105`
-                        : "bg-white/10 text-purple-200 hover:bg-white/20"
-                    }`}
-                  >
-                    <div>{val.label}</div>
-                    <div className="text-xs opacity-75">{val.timer}s · x{val.multiplier}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <DifficultySelector difficulty={difficulty} setDifficulty={setDifficulty} />
 
             <button
-              onClick={() => selected.size > 0 && onStart(Array.from(selected), difficulty)}
+              onClick={() => selected.size > 0 && onStart({ tables: Array.from(selected) }, difficulty)}
               disabled={selected.size === 0}
               className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
                 selected.size > 0
@@ -117,7 +148,113 @@
       );
     }
 
-    function QuizScreen({ questions, difficulty, onFinish }) {
+    // Config Screen for Addition/Subtraction
+    function RangeConfig({ mode, onStart, onBack }) {
+      const modeInfo = MODES[mode];
+      const [min, setMin] = useState(1);
+      const [max, setMax] = useState(20);
+      const [difficulty, setDifficulty] = useState('normal');
+
+      const presets = [
+        { label: "1-20", min: 1, max: 20 },
+        { label: "1-50", min: 1, max: 50 },
+        { label: "1-100", min: 1, max: 100 },
+      ];
+
+      const isValid = min >= 0 && max > min;
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+            <button onClick={onBack} className="text-purple-300 hover:text-white mb-4 transition">← Retour</button>
+            <h1 className="text-2xl font-bold text-white text-center mb-2">{modeInfo.icon} {modeInfo.label}</h1>
+            <p className="text-purple-200 text-center mb-6">Configure la plage de nombres</p>
+
+            {/* Presets */}
+            <div className="flex gap-2 mb-6">
+              {presets.map(p => (
+                <button
+                  key={p.label}
+                  onClick={() => { setMin(p.min); setMax(p.max); }}
+                  className={`flex-1 py-2 rounded-xl font-medium text-sm transition-all ${
+                    min === p.min && max === p.max
+                      ? `bg-gradient-to-r ${modeInfo.color} text-white shadow-lg`
+                      : "bg-white/10 text-purple-200 hover:bg-white/20"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom range */}
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1">
+                <label className="text-purple-300 text-sm mb-1 block">Min</label>
+                <input
+                  type="number"
+                  value={min}
+                  onChange={e => setMin(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-center font-bold outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-purple-300 text-sm mb-1 block">Max</label>
+                <input
+                  type="number"
+                  value={max}
+                  onChange={e => setMax(parseInt(e.target.value) || 0)}
+                  className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-center font-bold outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            <DifficultySelector difficulty={difficulty} setDifficulty={setDifficulty} />
+
+            <button
+              onClick={() => isValid && onStart({ min, max }, difficulty)}
+              disabled={!isValid}
+              className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
+                isValid
+                  ? `bg-gradient-to-r ${modeInfo.color} text-white shadow-lg hover:scale-[1.02]`
+                  : "bg-white/10 text-white/30 cursor-not-allowed"
+              }`}
+            >
+              C'est parti ! →
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Shared Difficulty Selector
+    function DifficultySelector({ difficulty, setDifficulty }) {
+      return (
+        <div className="mb-8">
+          <p className="text-purple-200 text-center text-sm mb-3">Difficulté</p>
+          <div className="flex gap-2">
+            {Object.entries(DIFFICULTY).map(([key, val]) => (
+              <button
+                key={key}
+                onClick={() => setDifficulty(key)}
+                className={`flex-1 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
+                  difficulty === key
+                    ? `bg-gradient-to-r ${val.color} text-white shadow-lg scale-105`
+                    : "bg-white/10 text-purple-200 hover:bg-white/20"
+                }`}
+              >
+                <div>{val.label}</div>
+                <div className="text-xs opacity-75">{val.timer}s · x{val.multiplier}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Quiz Screen
+    function QuizScreen({ mode, questions, difficulty, onFinish }) {
+      const modeInfo = MODES[mode];
       const config = DIFFICULTY[difficulty];
       const [index, setIndex] = useState(0);
       const [answer, setAnswer] = useState("");
@@ -128,11 +265,10 @@
       const feedbackRef = useRef(false);
 
       const current = questions[index];
-      const correctAnswer = current.a * current.b;
 
       const nextQuestion = () => {
         if (index + 1 >= questions.length) {
-          const finalResult = { ...current, userAnswer: parseInt(answer) || null, correct: parseInt(answer) === correctAnswer };
+          const finalResult = { ...current, userAnswer: parseInt(answer) || null, correct: parseInt(answer) === current.answer };
           onFinish([...results, finalResult]);
         } else {
           setIndex(i => i + 1);
@@ -154,7 +290,7 @@
       const handleSubmit = () => {
         if (feedbackRef.current || !answer) return;
         feedbackRef.current = true;
-        const isCorrect = parseInt(answer) === correctAnswer;
+        const isCorrect = parseInt(answer) === current.answer;
         setFeedback(isCorrect ? 'correct' : 'wrong');
         setResults(r => [...r, { ...current, userAnswer: parseInt(answer), correct: isCorrect }]);
         setTimeout(nextQuestion, 1200);
@@ -175,7 +311,13 @@
       }, [index]);
 
       useEffect(() => {
-        if (!feedbackRef.current) inputRef.current?.focus();
+        if (!feedbackRef.current && inputRef.current) {
+          inputRef.current.focus();
+          // Mobile: scroll input into view when keyboard opens
+          setTimeout(() => {
+            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        }
       }, [index, feedback]);
 
       const timerPercent = (timer / config.timer) * 100;
@@ -201,7 +343,9 @@
             </div>
 
             <div className={`text-center mb-8 transition-all duration-300 ${feedback ? 'scale-95 opacity-80' : ''}`}>
-              <div className="text-6xl font-bold text-white mb-2">{current.a} × {current.b}</div>
+              <div className="text-5xl font-bold text-white mb-2">
+                {current.a} {modeInfo.symbol} {current.b}
+              </div>
               <div className="text-2xl text-purple-300">= ?</div>
             </div>
 
@@ -210,10 +354,11 @@
                 ref={inputRef}
                 type="text"
                 inputMode="numeric"
-                pattern="[0-9]*"
+                pattern="[0-9-]*"
                 value={answer}
-                onChange={e => setAnswer(e.target.value.replace(/[^0-9]/g, ''))}
+                onChange={e => setAnswer(e.target.value.replace(/[^0-9-]/g, ''))}
                 onKeyDown={e => { if (e.key === 'Enter' && answer && !feedback) handleSubmit(); }}
+                onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                 disabled={!!feedback}
                 className={`w-full text-center text-4xl font-bold py-4 rounded-2xl outline-none transition-all duration-300 ${
                   feedback === 'correct'
@@ -228,7 +373,7 @@
 
               {feedback && (
                 <div className={`text-center mt-4 text-xl font-bold ${feedback === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
-                  {feedback === 'correct' ? '✓ Correct !' : `✗ C'était ${correctAnswer}`}
+                  {feedback === 'correct' ? '✓ Correct !' : `✗ C'était ${current.answer}`}
                 </div>
               )}
 
@@ -238,7 +383,7 @@
                   disabled={!answer}
                   className={`w-full mt-6 py-4 rounded-2xl font-bold text-lg transition-all ${
                     answer
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg'
+                      ? `bg-gradient-to-r ${modeInfo.color} text-white hover:shadow-lg`
                       : 'bg-white/10 text-white/30 cursor-not-allowed'
                   }`}
                 >
@@ -251,10 +396,12 @@
       );
     }
 
-    function ResultScreen({ results, difficulty, onRestart, onConfig }) {
-      const config = DIFFICULTY[difficulty];
+    // Result Screen
+    function ResultScreen({ mode, results, difficulty, onRestart, onConfig, onMenu }) {
+      const modeInfo = MODES[mode];
+      const diffConfig = DIFFICULTY[difficulty];
       const correctCount = results.filter(r => r.correct).length;
-      const score = Math.round(correctCount * config.multiplier * 10);
+      const score = Math.round(correctCount * diffConfig.multiplier * 10);
       const percent = Math.round((correctCount / results.length) * 100);
 
       const getMessage = () => {
@@ -273,14 +420,14 @@
             <div className="text-center mb-8">
               <div className="text-6xl mb-4">{msg.emoji}</div>
               <div className="text-5xl font-bold text-white mb-1">{score} pts</div>
-              <div className="text-lg text-purple-300 mb-1">{correctCount}/{results.length} · {config.label} (x{config.multiplier})</div>
+              <div className="text-lg text-purple-300 mb-1">{correctCount}/{results.length} · {diffConfig.label} (x{diffConfig.multiplier})</div>
               <div className="text-xl text-purple-200">{msg.text}</div>
             </div>
 
             <div className="bg-white/5 rounded-2xl p-4 mb-8 max-h-48 overflow-y-auto">
               {results.map((r, i) => (
                 <div key={i} className={`flex justify-between items-center py-2 ${i > 0 ? 'border-t border-white/10' : ''}`}>
-                  <span className="text-purple-200">{r.a} × {r.b} = {r.a * r.b}</span>
+                  <span className="text-purple-200">{r.a} {modeInfo.symbol} {r.b} = {r.answer}</span>
                   <span className={r.correct ? 'text-green-400' : 'text-red-400'}>
                     {r.correct ? '✓' : `✗ ${r.userAnswer ?? '—'}`}
                   </span>
@@ -291,7 +438,7 @@
             <div className="space-y-3">
               <button
                 onClick={onRestart}
-                className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/50 transition-all"
+                className={`w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r ${modeInfo.color} text-white hover:shadow-lg transition-all`}
               >
                 Rejouer ↻
               </button>
@@ -299,7 +446,13 @@
                 onClick={onConfig}
                 className="w-full py-3 rounded-2xl font-medium text-purple-300 bg-white/10 hover:bg-white/20 transition-all"
               >
-                Changer les tables
+                Modifier les paramètres
+              </button>
+              <button
+                onClick={onMenu}
+                className="w-full py-3 rounded-2xl font-medium text-purple-400 hover:text-white transition-all"
+              >
+                ← Menu principal
               </button>
             </div>
           </div>
@@ -307,17 +460,24 @@
       );
     }
 
+    // Main App
     function App() {
-      const [screen, setScreen] = useState('config');
-      const [tables, setTables] = useState([]);
+      const [screen, setScreen] = useState('menu');
+      const [mode, setMode] = useState(null);
+      const [gameConfig, setGameConfig] = useState(null);
       const [difficulty, setDifficulty] = useState('normal');
       const [questions, setQuestions] = useState([]);
       const [results, setResults] = useState([]);
 
-      const startQuiz = (selectedTables, selectedDifficulty) => {
-        setTables(selectedTables);
+      const selectMode = (selectedMode) => {
+        setMode(selectedMode);
+        setScreen('config');
+      };
+
+      const startQuiz = (config, selectedDifficulty) => {
+        setGameConfig(config);
         setDifficulty(selectedDifficulty);
-        setQuestions(generateQuestions(selectedTables));
+        setQuestions(generateQuestions(mode, config));
         setResults([]);
         setScreen('quiz');
       };
@@ -328,16 +488,28 @@
       };
 
       const restart = () => {
-        setQuestions(generateQuestions(tables));
+        setQuestions(generateQuestions(mode, gameConfig));
         setResults([]);
         setScreen('quiz');
       };
 
       const goConfig = () => setScreen('config');
+      const goMenu = () => { setScreen('menu'); setMode(null); };
 
-      if (screen === 'config') return <ConfigScreen onStart={startQuiz} />;
-      if (screen === 'quiz') return <QuizScreen questions={questions} difficulty={difficulty} onFinish={finishQuiz} />;
-      return <ResultScreen results={results} difficulty={difficulty} onRestart={restart} onConfig={goConfig} />;
+      if (screen === 'menu') return <MenuScreen onSelect={selectMode} />;
+
+      if (screen === 'config') {
+        if (mode === 'multiplication') {
+          return <MultiplicationConfig onStart={startQuiz} onBack={goMenu} />;
+        }
+        return <RangeConfig mode={mode} onStart={startQuiz} onBack={goMenu} />;
+      }
+
+      if (screen === 'quiz') {
+        return <QuizScreen mode={mode} questions={questions} difficulty={difficulty} onFinish={finishQuiz} />;
+      }
+
+      return <ResultScreen mode={mode} results={results} difficulty={difficulty} onRestart={restart} onConfig={goConfig} onMenu={goMenu} />;
     }
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
