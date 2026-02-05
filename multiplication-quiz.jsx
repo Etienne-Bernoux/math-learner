@@ -1,0 +1,348 @@
+import { useState, useEffect, useRef } from "react";
+
+const QUESTIONS_COUNT = 10;
+
+const DIFFICULTY = {
+  easy:   { label: "Facile",  timer: 12, multiplier: 1,   color: "from-green-500 to-emerald-500" },
+  normal: { label: "Normal",  timer: 8,  multiplier: 1.5, color: "from-yellow-500 to-orange-500" },
+  expert: { label: "Expert",  timer: 4,  multiplier: 2,   color: "from-red-500 to-pink-500" },
+};
+
+function generateQuestions(selectedTables) {
+  const questions = [];
+  const pool = [];
+
+  selectedTables.forEach(table => {
+    for (let i = 2; i <= 12; i++) {
+      pool.push({ a: table, b: i });
+    }
+  });
+
+  // Shuffle and pick
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < Math.min(QUESTIONS_COUNT, shuffled.length); i++) {
+    questions.push(shuffled[i]);
+  }
+
+  return questions;
+}
+
+// Config Screen
+function ConfigScreen({ onStart }) {
+  const [selected, setSelected] = useState(new Set([2, 3, 4, 5]));
+  const [difficulty, setDifficulty] = useState('normal');
+
+  const toggle = (n) => {
+    const next = new Set(selected);
+    if (next.has(n)) next.delete(n);
+    else next.add(n);
+    setSelected(next);
+  };
+
+  const selectAll = () => setSelected(new Set([2,3,4,5,6,7,8,9,10,11,12]));
+  const selectNone = () => setSelected(new Set());
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+        <h1 className="text-3xl font-bold text-white text-center mb-2">× Tables</h1>
+        <p className="text-purple-200 text-center mb-6">Sélectionne les tables à réviser</p>
+
+        <div className="flex justify-center gap-2 mb-4">
+          <button onClick={selectAll} className="text-sm text-purple-300 hover:text-white transition">Tout</button>
+          <span className="text-purple-500">|</span>
+          <button onClick={selectNone} className="text-sm text-purple-300 hover:text-white transition">Aucun</button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {[2,3,4,5,6,7,8,9,10,11,12].map(n => (
+            <button
+              key={n}
+              onClick={() => toggle(n)}
+              className={`aspect-square rounded-xl font-bold text-lg transition-all duration-200 ${
+                selected.has(n)
+                  ? "bg-purple-500 text-white shadow-lg shadow-purple-500/50 scale-105"
+                  : "bg-white/10 text-purple-200 hover:bg-white/20"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+
+        {/* Difficulty */}
+        <div className="mb-8">
+          <p className="text-purple-200 text-center text-sm mb-3">Difficulté</p>
+          <div className="flex gap-2">
+            {Object.entries(DIFFICULTY).map(([key, val]) => (
+              <button
+                key={key}
+                onClick={() => setDifficulty(key)}
+                className={`flex-1 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
+                  difficulty === key
+                    ? `bg-gradient-to-r ${val.color} text-white shadow-lg scale-105`
+                    : "bg-white/10 text-purple-200 hover:bg-white/20"
+                }`}
+              >
+                <div>{val.label}</div>
+                <div className="text-xs opacity-75">{val.timer}s · x{val.multiplier}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={() => selected.size > 0 && onStart(Array.from(selected), difficulty)}
+          disabled={selected.size === 0}
+          className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
+            selected.size > 0
+              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:shadow-purple-500/50 hover:scale-[1.02]"
+              : "bg-white/10 text-white/30 cursor-not-allowed"
+          }`}
+        >
+          C'est parti ! →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Quiz Screen
+function QuizScreen({ questions, difficulty, onFinish }) {
+  const config = DIFFICULTY[difficulty];
+  const [index, setIndex] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [timer, setTimer] = useState(config.timer);
+  const [results, setResults] = useState([]);
+  const [feedback, setFeedback] = useState(null); // null | 'correct' | 'wrong'
+  const inputRef = useRef(null);
+
+  const current = questions[index];
+  const correctAnswer = current.a * current.b;
+
+  // Timer
+  useEffect(() => {
+    if (feedback) return;
+
+    const interval = setInterval(() => {
+      setTimer(t => {
+        if (t <= 1) {
+          handleTimeout();
+          return config.timer;
+        }
+        return t - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [index, feedback]);
+
+  // Focus input
+  useEffect(() => {
+    if (!feedback) inputRef.current?.focus();
+  }, [index, feedback]);
+
+  const handleTimeout = () => {
+    setFeedback('wrong');
+    setResults(r => [...r, { ...current, userAnswer: null, correct: false }]);
+    setTimeout(nextQuestion, 1200);
+  };
+
+  const handleSubmit = () => {
+    if (feedback || !answer) return;
+
+    const isCorrect = parseInt(answer) === correctAnswer;
+    setFeedback(isCorrect ? 'correct' : 'wrong');
+    setResults(r => [...r, { ...current, userAnswer: parseInt(answer), correct: isCorrect }]);
+    setTimeout(nextQuestion, 1200);
+  };
+
+  const nextQuestion = () => {
+    if (index + 1 >= questions.length) {
+      onFinish(results.concat({ ...current, userAnswer: parseInt(answer) || null, correct: parseInt(answer) === correctAnswer }));
+    } else {
+      setIndex(i => i + 1);
+      setAnswer("");
+      setTimer(config.timer);
+      setFeedback(null);
+    }
+  };
+
+  const timerPercent = (timer / config.timer) * 100;
+  const timerColor = timer <= 3 ? "bg-red-500" : timer <= 5 ? "bg-yellow-500" : "bg-green-500";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+
+        {/* Progress */}
+        <div className="flex justify-between items-center mb-6">
+          <span className="text-purple-300 font-medium">{index + 1} / {questions.length}</span>
+          <div className="flex gap-1">
+            {results.map((r, i) => (
+              <div key={i} className={`w-2 h-2 rounded-full ${r.correct ? 'bg-green-400' : 'bg-red-400'}`} />
+            ))}
+            {Array(questions.length - results.length).fill(0).map((_, i) => (
+              <div key={`empty-${i}`} className="w-2 h-2 rounded-full bg-white/20" />
+            ))}
+          </div>
+        </div>
+
+        {/* Timer bar */}
+        <div className="h-2 bg-white/10 rounded-full mb-8 overflow-hidden">
+          <div
+            className={`h-full ${timerColor} transition-all duration-1000 ease-linear`}
+            style={{ width: `${timerPercent}%` }}
+          />
+        </div>
+
+        {/* Question */}
+        <div className={`text-center mb-8 transition-all duration-300 ${feedback ? 'scale-95 opacity-80' : ''}`}>
+          <div className="text-6xl font-bold text-white mb-2">
+            {current.a} × {current.b}
+          </div>
+          <div className="text-2xl text-purple-300">= ?</div>
+        </div>
+
+        {/* Input */}
+        <div>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={answer}
+            onChange={e => setAnswer(e.target.value.replace(/[^0-9]/g, ''))}
+            onKeyDown={e => { if (e.key === 'Enter' && answer && !feedback) handleSubmit(); }}
+            disabled={!!feedback}
+            className={`w-full text-center text-4xl font-bold py-4 rounded-2xl outline-none transition-all duration-300 ${
+              feedback === 'correct'
+                ? 'bg-green-500/30 text-green-300 border-2 border-green-500'
+                : feedback === 'wrong'
+                ? 'bg-red-500/30 text-red-300 border-2 border-red-500'
+                : 'bg-white/10 text-white border-2 border-transparent focus:border-purple-500'
+            }`}
+            placeholder="?"
+            autoComplete="off"
+          />
+
+          {/* Feedback */}
+          {feedback && (
+            <div className={`text-center mt-4 text-xl font-bold ${feedback === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
+              {feedback === 'correct' ? '✓ Correct !' : `✗ C'était ${correctAnswer}`}
+            </div>
+          )}
+
+          {!feedback && (
+            <button
+              onClick={handleSubmit}
+              disabled={!answer}
+              className={`w-full mt-6 py-4 rounded-2xl font-bold text-lg transition-all ${
+                answer
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg'
+                  : 'bg-white/10 text-white/30 cursor-not-allowed'
+              }`}
+            >
+              Valider
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Result Screen
+function ResultScreen({ results, difficulty, onRestart, onConfig }) {
+  const config = DIFFICULTY[difficulty];
+  const correctCount = results.filter(r => r.correct).length;
+  const score = Math.round(correctCount * config.multiplier * 10);
+  const percent = Math.round((correctCount / results.length) * 100);
+
+  const getMessage = () => {
+    if (percent === 100) return { emoji: "🏆", text: "Parfait !" };
+    if (percent >= 80) return { emoji: "🔥", text: "Excellent !" };
+    if (percent >= 60) return { emoji: "💪", text: "Pas mal !" };
+    if (percent >= 40) return { emoji: "📚", text: "Continue !" };
+    return { emoji: "🎯", text: "À retravailler" };
+  };
+
+  const msg = getMessage();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+
+        {/* Score */}
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-4">{msg.emoji}</div>
+          <div className="text-5xl font-bold text-white mb-1">{score} pts</div>
+          <div className="text-lg text-purple-300 mb-1">{correctCount}/{results.length} · {config.label} (x{config.multiplier})</div>
+          <div className="text-xl text-purple-200">{msg.text}</div>
+        </div>
+
+        {/* Details */}
+        <div className="bg-white/5 rounded-2xl p-4 mb-8 max-h-48 overflow-y-auto">
+          {results.map((r, i) => (
+            <div key={i} className={`flex justify-between items-center py-2 ${i > 0 ? 'border-t border-white/10' : ''}`}>
+              <span className="text-purple-200">{r.a} × {r.b} = {r.a * r.b}</span>
+              <span className={r.correct ? 'text-green-400' : 'text-red-400'}>
+                {r.correct ? '✓' : `✗ ${r.userAnswer ?? '—'}`}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-3">
+          <button
+            onClick={onRestart}
+            className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/50 transition-all"
+          >
+            Rejouer ↻
+          </button>
+          <button
+            onClick={onConfig}
+            className="w-full py-3 rounded-2xl font-medium text-purple-300 bg-white/10 hover:bg-white/20 transition-all"
+          >
+            Changer les tables
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main App
+export default function MultiplicationQuiz() {
+  const [screen, setScreen] = useState('config'); // config | quiz | result
+  const [tables, setTables] = useState([]);
+  const [difficulty, setDifficulty] = useState('normal');
+  const [questions, setQuestions] = useState([]);
+  const [results, setResults] = useState([]);
+
+  const startQuiz = (selectedTables, selectedDifficulty) => {
+    setTables(selectedTables);
+    setDifficulty(selectedDifficulty);
+    setQuestions(generateQuestions(selectedTables));
+    setResults([]);
+    setScreen('quiz');
+  };
+
+  const finishQuiz = (quizResults) => {
+    setResults(quizResults);
+    setScreen('result');
+  };
+
+  const restart = () => {
+    setQuestions(generateQuestions(tables));
+    setResults([]);
+    setScreen('quiz');
+  };
+
+  const goConfig = () => setScreen('config');
+
+  if (screen === 'config') return <ConfigScreen onStart={startQuiz} />;
+  if (screen === 'quiz') return <QuizScreen questions={questions} difficulty={difficulty} onFinish={finishQuiz} />;
+  return <ResultScreen results={results} difficulty={difficulty} onRestart={restart} onConfig={goConfig} />;
+}
