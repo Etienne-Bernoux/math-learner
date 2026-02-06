@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Application d'entraînement au calcul mental - Multiplication, Division, Addition, Soustraction">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
   <title>MathQuiz - Calcul Mental</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -13,6 +18,17 @@
     input::-webkit-outer-spin-button,
     input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
+
+    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+
+    .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+    .animate-pop { animation: pop 0.4s ease-out; }
   </style>
 </head>
 <body>
@@ -139,15 +155,17 @@
       const pool = [];
 
       if (mode === 'multiplication') {
+        const maxB = config.maxTable || 12;
         config.tables.forEach(table => {
-          for (let i = 2; i <= 12; i++) {
+          for (let i = 2; i <= maxB; i++) {
             pool.push({ a: table, b: i, answer: table * i });
           }
         });
       } else if (mode === 'division') {
         // Division sans reste : on part de table × i = produit, donc produit ÷ i = table
+        const maxB = config.maxTable || 12;
         config.tables.forEach(table => {
-          for (let i = 2; i <= 12; i++) {
+          for (let i = 2; i <= maxB; i++) {
             const product = table * i;
             pool.push({ a: product, b: i, answer: table });
           }
@@ -174,7 +192,7 @@
     function MenuScreen({ onSelect, onStats, stats }) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 animate-fade-in">
             <h1 className="text-3xl font-bold text-white text-center mb-2">🧮 MathQuiz</h1>
             <p className="text-blue-200 text-center mb-6">Choisis ton entraînement</p>
 
@@ -226,8 +244,8 @@
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto">
-            <button onClick={onBack} className="text-blue-300 hover:text-white mb-4 transition">← Retour</button>
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto animate-fade-in">
+            <button onClick={onBack} className="text-blue-300 hover:text-white mb-4 transition flex items-center gap-1">← Retour</button>
             <h1 className="text-2xl font-bold text-white text-center mb-6">🏆 Statistiques</h1>
 
             {/* Stats grid */}
@@ -296,23 +314,54 @@
       const modeInfo = MODES[mode];
       const [selected, setSelected] = useState(new Set([2, 3, 4, 5]));
       const [difficulty, setDifficulty] = useState('normal');
+      const [maxTable, setMaxTable] = useState(10);
 
       const toggle = (n) => {
+        if (n > maxTable) return;
         const next = new Set(selected);
         if (next.has(n)) next.delete(n);
         else next.add(n);
         setSelected(next);
       };
 
-      const selectAll = () => setSelected(new Set([2,3,4,5,6,7,8,9,10,11,12]));
+      const tables = maxTable === 10 ? [2,3,4,5,6,7,8,9,10] : [2,3,4,5,6,7,8,9,10,11,12];
+      const selectAll = () => setSelected(new Set(tables));
       const selectNone = () => setSelected(new Set());
+
+      // Quand on change maxTable, on retire 11 et 12 si besoin
+      const handleMaxTableChange = (newMax) => {
+        setMaxTable(newMax);
+        if (newMax === 10) {
+          const next = new Set(selected);
+          next.delete(11);
+          next.delete(12);
+          setSelected(next);
+        }
+      };
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 animate-fade-in">
             <button onClick={onBack} className="text-blue-300 hover:text-white mb-4 transition">← Retour</button>
             <h1 className="text-2xl font-bold text-white text-center mb-2">{modeInfo.icon} {modeInfo.label}</h1>
             <p className="text-blue-200 text-center mb-6">Sélectionne les tables</p>
+
+            {/* Max table toggle */}
+            <div className="flex justify-center gap-2 mb-4">
+              <span className="text-blue-300 text-sm">Tables jusqu'à :</span>
+              <button
+                onClick={() => handleMaxTableChange(10)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                  maxTable === 10 ? 'bg-blue-500 text-white' : 'bg-white/10 text-blue-300 hover:bg-white/20'
+                }`}
+              >10</button>
+              <button
+                onClick={() => handleMaxTableChange(12)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                  maxTable === 12 ? 'bg-blue-500 text-white' : 'bg-white/10 text-blue-300 hover:bg-white/20'
+                }`}
+              >12</button>
+            </div>
 
             <div className="flex justify-center gap-2 mb-4">
               <button onClick={selectAll} className="text-sm text-blue-300 hover:text-white transition">Tout</button>
@@ -320,8 +369,8 @@
               <button onClick={selectNone} className="text-sm text-blue-300 hover:text-white transition">Aucun</button>
             </div>
 
-            <div className="grid grid-cols-4 gap-3 mb-6">
-              {[2,3,4,5,6,7,8,9,10,11,12].map(n => (
+            <div className={`grid gap-3 mb-6 ${maxTable === 10 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+              {tables.map(n => (
                 <button
                   key={n}
                   onClick={() => toggle(n)}
@@ -339,7 +388,7 @@
             <DifficultySelector difficulty={difficulty} setDifficulty={setDifficulty} />
 
             <button
-              onClick={() => selected.size > 0 && onStart({ tables: Array.from(selected) }, difficulty)}
+              onClick={() => selected.size > 0 && onStart({ tables: Array.from(selected), maxTable }, difficulty)}
               disabled={selected.size === 0}
               className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
                 selected.size > 0
@@ -371,7 +420,7 @@
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 animate-fade-in">
             <button onClick={onBack} className="text-blue-300 hover:text-white mb-4 transition">← Retour</button>
             <h1 className="text-2xl font-bold text-white text-center mb-2">{modeInfo.icon} {modeInfo.label}</h1>
             <p className="text-blue-200 text-center mb-6">Configure la plage de nombres</p>
@@ -450,7 +499,7 @@
                 }`}
               >
                 <div>{val.label}</div>
-                <div className="text-xs opacity-75">{val.timer}s · x{val.multiplier}</div>
+                <div className="text-xs opacity-75">{val.timer === 0 ? '∞' : val.timer + 's'} · x{val.multiplier}</div>
               </button>
             ))}
           </div>
@@ -471,8 +520,14 @@
       const [maxStreak, setMaxStreak] = useState(0);
       const inputRef = useRef(null);
       const feedbackRef = useRef(false);
+      const answerRef = useRef("");
 
       const current = questions[index];
+
+      // Keep answerRef in sync
+      useEffect(() => {
+        answerRef.current = answer;
+      }, [answer]);
 
       const nextQuestion = (newStreak, newMaxStreak) => {
         if (index + 1 >= questions.length) {
@@ -490,10 +545,34 @@
       const handleTimeout = () => {
         if (feedbackRef.current) return;
         feedbackRef.current = true;
-        setFeedback('wrong');
-        setStreak(0);
-        setResults(r => [...r, { ...current, userAnswer: null, correct: false }]);
-        setTimeout(() => nextQuestion(0, maxStreak), 1200);
+
+        const currentAnswer = answerRef.current;
+
+        // Si une réponse a été entrée, on la considère
+        if (currentAnswer) {
+          const isCorrect = parseInt(currentAnswer) === current.answer;
+          setFeedback(isCorrect ? 'correct' : 'wrong');
+
+          let newStreak = streak;
+          let newMaxStreak = maxStreak;
+          if (isCorrect) {
+            newStreak = streak + 1;
+            newMaxStreak = Math.max(maxStreak, newStreak);
+            setStreak(newStreak);
+            setMaxStreak(newMaxStreak);
+          } else {
+            setStreak(0);
+          }
+
+          setResults(r => [...r, { ...current, userAnswer: parseInt(currentAnswer), correct: isCorrect }]);
+          setTimeout(() => nextQuestion(isCorrect ? newStreak : 0, newMaxStreak), 1200);
+        } else {
+          // Pas de réponse = faux
+          setFeedback('wrong');
+          setStreak(0);
+          setResults(r => [...r, { ...current, userAnswer: null, correct: false }]);
+          setTimeout(() => nextQuestion(0, maxStreak), 1200);
+        }
       };
 
       const handleSubmit = () => {
@@ -546,11 +625,11 @@
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 animate-fade-in">
             <div className="flex justify-between items-center mb-4">
               <button onClick={onMenu} className="text-blue-400 hover:text-white text-sm transition">✕ Quitter</button>
               {streak >= 2 && (
-                <span className="text-amber-400 font-bold text-sm flex items-center gap-1">
+                <span className="text-amber-400 font-bold text-sm flex items-center gap-1 animate-pulse-slow">
                   🔥 {streak}
                 </span>
               )}
@@ -565,13 +644,17 @@
               </div>
             </div>
 
-            {config.timer > 0 && (
+            {config.timer > 0 ? (
               <div className="h-2 bg-white/10 rounded-full mb-8 overflow-hidden">
                 <div className={`h-full ${timerColor} transition-all duration-1000 ease-linear`} style={{ width: `${timerPercent}%` }} />
               </div>
+            ) : (
+              <div className="flex justify-center mb-6">
+                <span className="text-blue-400 text-sm bg-blue-500/10 px-3 py-1 rounded-full">Mode Zen — sans limite de temps</span>
+              </div>
             )}
 
-            <div className={`text-center mb-8 transition-all duration-300 ${feedback ? 'scale-95 opacity-80' : ''}`}>
+            <div className={`text-center mb-8 transition-all duration-300 ${feedback === 'correct' ? 'scale-105' : feedback === 'wrong' ? 'animate-shake' : ''}`}>
               <div className="text-5xl font-bold text-white mb-2">
                 {current.a} {modeInfo.symbol} {current.b}
               </div>
@@ -645,9 +728,9 @@
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 animate-fade-in">
             <div className="text-center mb-6">
-              <div className="text-6xl mb-4">{msg.emoji}</div>
+              <div className="text-6xl mb-4 animate-pop">{msg.emoji}</div>
               <div className="text-5xl font-bold text-white mb-1">+{score} pts</div>
               <div className="text-lg text-blue-300 mb-1">{correctCount}/{results.length} · {diffConfig.label} (x{diffConfig.multiplier})</div>
               <div className="text-xl text-blue-200">{msg.text}</div>
@@ -655,14 +738,14 @@
 
             {/* New achievements */}
             {newAchievements.length > 0 && (
-              <div className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-2xl p-4 mb-6 border border-amber-500/30">
-                <div className="text-amber-300 font-bold text-center mb-3">🎉 Nouveau badge !</div>
+              <div className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-2xl p-4 mb-6 border border-amber-500/30 animate-pop">
+                <div className="text-amber-300 font-bold text-center mb-3">🎉 {newAchievements.length > 1 ? 'Nouveaux badges !' : 'Nouveau badge !'}</div>
                 <div className="flex justify-center gap-4">
                   {newAchievements.map(key => {
                     const ach = ACHIEVEMENTS[key];
                     return (
                       <div key={key} className="text-center">
-                        <div className="text-3xl mb-1">{ach.icon}</div>
+                        <div className="text-3xl mb-1 animate-pulse-slow">{ach.icon}</div>
                         <div className="text-white font-medium text-sm">{ach.name}</div>
                       </div>
                     );
