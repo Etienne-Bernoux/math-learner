@@ -3,12 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Application d'entraînement au calcul mental - Multiplication, Division, Addition, Soustraction">
-  <meta name="theme-color" content="#1e3a5f">
+  <meta name="description" content="Apprends les maths en t'amusant ! Mode enfant avec puzzles à débloquer, et calcul mental avancé pour les grands.">
+  <meta name="keywords" content="calcul mental, maths, enfant, apprentissage, tables multiplication, addition, soustraction">
+  <meta name="author" content="MathQuiz">
+  <meta name="theme-color" content="#4c1d95">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MathQuiz">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
-  <title>MathQuiz - Calcul Mental</title>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234c1d95' width='100' height='100' rx='20'/><text y='.9em' x='5' font-size='80'>🧮</text></svg>">
+  <title>MathQuiz - Apprends à compter en t'amusant !</title>
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="data:application/json,%7B%22name%22%3A%22MathQuiz%22%2C%22short_name%22%3A%22MathQuiz%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%234c1d95%22%2C%22theme_color%22%3A%22%234c1d95%22%7D">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -24,11 +30,60 @@
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
     @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes shine { 0% { background-position: -100% 0; } 100% { background-position: 200% 0; } }
+    @keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(-100px) rotate(720deg); opacity: 0; } }
+    @keyframes puzzleReveal { 0% { transform: scale(0) rotate(-180deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+    @keyframes celebrate { 0% { transform: scale(1); } 25% { transform: scale(1.2) rotate(-5deg); } 50% { transform: scale(1.3); } 75% { transform: scale(1.2) rotate(5deg); } 100% { transform: scale(1); } }
+    @keyframes bounce-in { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    @keyframes star-pop { 0% { transform: scale(0) rotate(-180deg); } 60% { transform: scale(1.3) rotate(10deg); } 100% { transform: scale(1) rotate(0); } }
 
     .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    .animate-bounce-in { animation: bounce-in 0.4s ease-out; }
+    .animate-star-pop { animation: star-pop 0.5s ease-out forwards; }
     .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
     .animate-shake { animation: shake 0.3s ease-in-out; }
     .animate-pop { animation: pop 0.4s ease-out; }
+    .animate-float { animation: float 3s ease-in-out infinite; }
+    .animate-puzzle-reveal { animation: puzzleReveal 0.6s ease-out forwards; }
+    .animate-celebrate { animation: celebrate 1s ease-in-out; }
+
+    .shine-effect {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      background-size: 200% 100%;
+      animation: shine 2s infinite;
+    }
+
+    /* Confetti */
+    .confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 100;
+    }
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      animation: confetti-fall 3s ease-out forwards;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* Smooth scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+    /* Selection color */
+    ::selection { background: rgba(168, 85, 247, 0.4); }
   </style>
 </head>
 <body>
@@ -40,6 +95,7 @@
 
     // ========== STORAGE ==========
     const STORAGE_KEY = 'mathquiz_stats';
+    const PUZZLE_KEY = 'mathquiz_puzzles';
 
     const defaultStats = {
       totalScore: 0,
@@ -49,8 +105,18 @@
       totalCorrect: 0,
       totalQuestions: 0,
       expertPerfects: 0,
-      fastAnswers: 0, // réponses < 2s
+      fastAnswers: 0,
       achievements: [],
+    };
+
+    const defaultPuzzles = {
+      currentPuzzle: 0,
+      puzzles: [
+        { id: 0, pieces: Array(9).fill(false), completed: false },
+        { id: 1, pieces: Array(9).fill(false), completed: false },
+        { id: 2, pieces: Array(9).fill(false), completed: false },
+        { id: 3, pieces: Array(9).fill(false), completed: false },
+      ],
     };
 
     function loadStats() {
@@ -66,6 +132,205 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
       } catch {}
+    }
+
+    function loadPuzzles() {
+      try {
+        const saved = localStorage.getItem(PUZZLE_KEY);
+        return saved ? { ...defaultPuzzles, ...JSON.parse(saved) } : defaultPuzzles;
+      } catch {
+        return defaultPuzzles;
+      }
+    }
+
+    function savePuzzles(puzzles) {
+      try {
+        localStorage.setItem(PUZZLE_KEY, JSON.stringify(puzzles));
+      } catch {}
+    }
+
+    // ========== PUZZLES CONFIG ==========
+    // SVG images for puzzles (simple illustrations)
+    const PUZZLE_IMAGES = {
+      knight: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#fef3c7" width="300" height="300"/>
+        <circle cx="150" cy="80" r="45" fill="#6b7280"/>
+        <path d="M120 60 L150 20 L180 60" fill="#6b7280"/>
+        <rect x="105" y="125" width="90" height="100" rx="10" fill="#3b82f6"/>
+        <rect x="60" y="130" width="45" height="20" rx="5" fill="#3b82f6"/>
+        <rect x="195" y="130" width="45" height="20" rx="5" fill="#3b82f6"/>
+        <polygon points="230,100 280,150 230,200" fill="#d97706"/>
+        <rect x="240" y="140" width="50" height="20" fill="#92400e"/>
+        <rect x="120" y="225" width="25" height="60" fill="#1f2937"/>
+        <rect x="155" y="225" width="25" height="60" fill="#1f2937"/>
+        <rect x="125" y="165" width="50" height="8" fill="#fbbf24"/>
+        <circle cx="150" cy="80" r="15" fill="#e5e7eb"/>
+        <rect x="135" y="70" width="30" height="5" fill="#1f2937"/>
+      </svg>`,
+      pirate: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#bae6fd" width="300" height="300"/>
+        <rect y="200" width="300" height="100" fill="#0ea5e9"/>
+        <path d="M50,220 Q150,180 250,220 L250,280 L50,280 Z" fill="#92400e"/>
+        <rect x="140" y="100" width="20" height="120" fill="#78350f"/>
+        <polygon points="160,100 160,180 260,140" fill="#f5f5f4"/>
+        <circle cx="210" cy="140" r="20" fill="#1f2937"/>
+        <path d="M200,130 L220,150 M200,150 L220,130" stroke="white" stroke-width="4"/>
+        <circle cx="100" cy="250" r="15" fill="#1f2937"/>
+        <circle cx="200" cy="250" r="15" fill="#1f2937"/>
+        <path d="M30,210 Q60,190 90,210" stroke="#78350f" stroke-width="8" fill="none"/>
+        <path d="M210,210 Q240,190 270,210" stroke="#78350f" stroke-width="8" fill="none"/>
+        <circle cx="150" cy="60" r="30" fill="#fbbf24"/>
+        <path d="M130,60 L170,60 M150,40 L150,80 M135,45 L165,75 M165,45 L135,75" stroke="#f59e0b" stroke-width="3"/>
+      </svg>`,
+      dragon: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#fecaca" width="300" height="300"/>
+        <ellipse cx="150" cy="200" rx="80" ry="50" fill="#16a34a"/>
+        <ellipse cx="150" cy="160" rx="60" ry="40" fill="#22c55e"/>
+        <circle cx="150" cy="100" r="50" fill="#22c55e"/>
+        <polygon points="120,60 150,20 180,60" fill="#22c55e"/>
+        <polygon points="100,70 70,40 110,80" fill="#22c55e"/>
+        <polygon points="200,70 230,40 190,80" fill="#22c55e"/>
+        <circle cx="130" cy="90" r="12" fill="#fef3c7"/>
+        <circle cx="170" cy="90" r="12" fill="#fef3c7"/>
+        <circle cx="130" cy="90" r="6" fill="#1f2937"/>
+        <circle cx="170" cy="90" r="6" fill="#1f2937"/>
+        <ellipse cx="150" cy="120" rx="8" ry="5" fill="#1f2937"/>
+        <path d="M60,180 Q30,150 50,120" stroke="#22c55e" stroke-width="20" fill="none"/>
+        <path d="M240,180 Q270,150 250,120" stroke="#22c55e" stroke-width="20" fill="none"/>
+        <path d="M150,250 Q150,280 180,290" stroke="#22c55e" stroke-width="15" fill="none"/>
+        <polygon points="180,285 200,300 175,300" fill="#22c55e"/>
+        <ellipse cx="80" cy="130" rx="30" ry="20" fill="#22c55e"/>
+        <ellipse cx="220" cy="130" rx="30" ry="20" fill="#22c55e"/>
+        <path d="M120,135 L140,150 L120,145 L135,160" fill="#ef4444"/>
+        <path d="M180,135 L160,150 L180,145 L165,160" fill="#ef4444"/>
+      </svg>`,
+      unicorn: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#fae8ff" width="300" height="300"/>
+        <ellipse cx="150" cy="200" rx="70" ry="45" fill="white" stroke="#e879f9" stroke-width="2"/>
+        <ellipse cx="100" cy="230" rx="15" ry="35" fill="white" stroke="#e879f9" stroke-width="2"/>
+        <ellipse cx="130" cy="235" rx="15" ry="35" fill="white" stroke="#e879f9" stroke-width="2"/>
+        <ellipse cx="170" cy="235" rx="15" ry="35" fill="white" stroke="#e879f9" stroke-width="2"/>
+        <ellipse cx="200" cy="230" rx="15" ry="35" fill="white" stroke="#e879f9" stroke-width="2"/>
+        <ellipse cx="80" cy="150" rx="35" ry="50" fill="white" stroke="#e879f9" stroke-width="2"/>
+        <polygon points="80,100 90,40 100,100" fill="#fbbf24"/>
+        <circle cx="65" cy="140" r="8" fill="#1f2937"/>
+        <circle cx="63" cy="138" r="3" fill="white"/>
+        <path d="M50,160 Q60,170 75,165" stroke="#f472b6" stroke-width="2" fill="none"/>
+        <path d="M60,110 Q30,100 20,130 Q10,160 40,150" fill="#f9a8d4"/>
+        <path d="M60,115 Q35,110 30,135 Q25,155 45,148" fill="#f472b6"/>
+        <path d="M60,120 Q45,118 42,135 Q40,148 52,145" fill="#c084fc"/>
+        <path d="M200,180 Q240,170 260,190 Q280,210 250,220" fill="#f9a8d4"/>
+        <path d="M200,185 Q235,178 250,195 Q265,210 245,218" fill="#f472b6"/>
+        <path d="M200,190 Q225,185 238,198 Q250,210 235,215" fill="#c084fc"/>
+        <ellipse cx="150" cy="165" rx="25" ry="8" fill="#fdf4ff"/>
+        <circle cx="220" cy="120" r="15" fill="#fef08a"/>
+        <polygon points="220,100 225,110 235,110 227,118 230,128 220,122 210,128 213,118 205,110 215,110" fill="#fde047"/>
+      </svg>`
+    };
+
+    const PUZZLES = [
+      {
+        id: 0,
+        name: "Chevalier",
+        theme: "knight",
+        bgColor: "from-amber-100 to-yellow-200",
+        borderColor: "border-amber-400",
+      },
+      {
+        id: 1,
+        name: "Pirate",
+        theme: "pirate",
+        bgColor: "from-sky-100 to-blue-200",
+        borderColor: "border-sky-400",
+      },
+      {
+        id: 2,
+        name: "Dragon",
+        theme: "dragon",
+        bgColor: "from-red-100 to-orange-200",
+        borderColor: "border-red-400",
+      },
+      {
+        id: 3,
+        name: "Licorne",
+        theme: "unicorn",
+        bgColor: "from-pink-100 to-purple-200",
+        borderColor: "border-pink-400",
+      },
+    ];
+
+    // ========== CONFETTI COMPONENT ==========
+    function Confetti({ count = 50 }) {
+      const colors = ['#f472b6', '#a78bfa', '#60a5fa', '#34d399', '#fbbf24', '#f87171'];
+      const confetti = Array.from({ length: count }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 0.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 8 + Math.random() * 8,
+        duration: 2 + Math.random() * 2,
+      }));
+
+      return (
+        <div className="confetti-container">
+          {confetti.map(c => (
+            <div
+              key={c.id}
+              className="confetti"
+              style={{
+                left: `${c.left}%`,
+                backgroundColor: c.color,
+                width: c.size,
+                height: c.size,
+                borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+                animationDelay: `${c.delay}s`,
+                animationDuration: `${c.duration}s`,
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    // ========== PUZZLE GRID COMPONENT ==========
+    function PuzzleGrid({ puzzle, pieces, size = 'md', animate = false }) {
+      const svgData = PUZZLE_IMAGES[puzzle.theme];
+      const sizeClasses = {
+        sm: 'w-24 h-24',
+        md: 'w-48 h-48',
+        lg: 'w-64 h-64'
+      };
+
+      return (
+        <div className={`${sizeClasses[size]} grid grid-cols-3 grid-rows-3 gap-0.5 rounded-xl overflow-hidden bg-gray-300`}>
+          {pieces.map((unlocked, i) => {
+            const row = Math.floor(i / 3);
+            const col = i % 3;
+            return (
+              <div
+                key={i}
+                className={`relative overflow-hidden ${animate && unlocked ? 'animate-puzzle-reveal' : ''}`}
+                style={animate ? { animationDelay: `${i * 0.1}s` } : {}}
+              >
+                {unlocked ? (
+                  <div
+                    className="w-full h-full"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svgData)}")`,
+                      backgroundSize: '300% 300%',
+                      backgroundPosition: `${col * 50}% ${row * 50}%`
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-400 flex items-center justify-center text-gray-500 text-lg font-bold">
+                    ?
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
     }
 
     // ========== ACHIEVEMENTS ==========
@@ -88,51 +353,16 @@
       const correctCount = results.filter(r => r.correct).length;
       const isPerfect = correctCount === results.length;
 
-      // First game
-      if (!stats.achievements.includes('first_game')) {
-        newAchievements.push('first_game');
-      }
-
-      // Perfect game
-      if (isPerfect && !stats.achievements.includes('perfect')) {
-        newAchievements.push('perfect');
-      }
-
-      // Speed demon (perfect on expert)
-      if (isPerfect && difficulty === 'expert' && !stats.achievements.includes('speed_demon')) {
-        newAchievements.push('speed_demon');
-      }
-
-      // Streak achievements
-      if (currentStreak >= 5 && !stats.achievements.includes('streak_5')) {
-        newAchievements.push('streak_5');
-      }
-      if (currentStreak >= 10 && !stats.achievements.includes('streak_10')) {
-        newAchievements.push('streak_10');
-      }
-
-      // Games played
-      if (stats.gamesPlayed + 1 >= 10 && !stats.achievements.includes('veteran')) {
-        newAchievements.push('veteran');
-      }
-      if (stats.gamesPlayed + 1 >= 50 && !stats.achievements.includes('master')) {
-        newAchievements.push('master');
-      }
-
-      // Perfect games count
-      if (isPerfect && stats.perfectGames + 1 >= 5 && !stats.achievements.includes('perfectionist')) {
-        newAchievements.push('perfectionist');
-      }
-
-      // Total correct
-      if (stats.totalCorrect + correctCount >= 500 && !stats.achievements.includes('scholar')) {
-        newAchievements.push('scholar');
-      }
-
-      // Fast answers
-      if (stats.fastAnswers >= 10 && !stats.achievements.includes('lightning')) {
-        newAchievements.push('lightning');
-      }
+      if (!stats.achievements.includes('first_game')) newAchievements.push('first_game');
+      if (isPerfect && !stats.achievements.includes('perfect')) newAchievements.push('perfect');
+      if (isPerfect && difficulty === 'expert' && !stats.achievements.includes('speed_demon')) newAchievements.push('speed_demon');
+      if (currentStreak >= 5 && !stats.achievements.includes('streak_5')) newAchievements.push('streak_5');
+      if (currentStreak >= 10 && !stats.achievements.includes('streak_10')) newAchievements.push('streak_10');
+      if (stats.gamesPlayed + 1 >= 10 && !stats.achievements.includes('veteran')) newAchievements.push('veteran');
+      if (stats.gamesPlayed + 1 >= 50 && !stats.achievements.includes('master')) newAchievements.push('master');
+      if (isPerfect && stats.perfectGames + 1 >= 5 && !stats.achievements.includes('perfectionist')) newAchievements.push('perfectionist');
+      if (stats.totalCorrect + correctCount >= 500 && !stats.achievements.includes('scholar')) newAchievements.push('scholar');
+      if (stats.fastAnswers >= 10 && !stats.achievements.includes('lightning')) newAchievements.push('lightning');
 
       return newAchievements;
     }
@@ -158,29 +388,51 @@
         const maxB = config.maxTable || 12;
         config.tables.forEach(table => {
           for (let i = 2; i <= maxB; i++) {
-            pool.push({ a: table, b: i, answer: table * i });
+            pool.push({ a: table, b: i, answer: table * i, op: '×' });
           }
         });
       } else if (mode === 'division') {
-        // Division sans reste : on part de table × i = produit, donc produit ÷ i = table
         const maxB = config.maxTable || 12;
         config.tables.forEach(table => {
           for (let i = 2; i <= maxB; i++) {
             const product = table * i;
-            pool.push({ a: product, b: i, answer: table });
+            pool.push({ a: product, b: i, answer: table, op: '÷' });
           }
         });
       } else if (mode === 'addition') {
         for (let i = 0; i < 50; i++) {
           const a = Math.floor(Math.random() * (config.max - config.min + 1)) + config.min;
           const b = Math.floor(Math.random() * (config.max - config.min + 1)) + config.min;
-          pool.push({ a, b, answer: a + b });
+          pool.push({ a, b, answer: a + b, op: '+' });
         }
       } else if (mode === 'subtraction') {
         for (let i = 0; i < 50; i++) {
           const a = Math.floor(Math.random() * (config.max - config.min + 1)) + config.min;
           const b = Math.floor(Math.random() * (a - config.min + 1)) + config.min;
-          pool.push({ a, b, answer: a - b });
+          pool.push({ a, b, answer: a - b, op: '−' });
+        }
+      } else if (mode === 'kids') {
+        // Mode enfant : additions et soustractions simples
+        const addOps = config.addOperations || [1, 2, 3];
+        const subOps = config.subOperations || [];
+
+        for (let i = 0; i < 50; i++) {
+          const a = Math.floor(Math.random() * (config.max - config.min + 1)) + config.min;
+
+          // Décider si addition ou soustraction
+          const allOps = [...addOps.map(n => ({type: '+', val: n})), ...subOps.map(n => ({type: '-', val: n}))];
+          if (allOps.length === 0) continue;
+
+          const op = allOps[Math.floor(Math.random() * allOps.length)];
+
+          if (op.type === '+') {
+            pool.push({ a, b: op.val, answer: a + op.val, op: '+' });
+          } else {
+            // Pour soustraction, s'assurer que le résultat >= 0
+            if (a >= op.val) {
+              pool.push({ a, b: op.val, answer: a - op.val, op: '-' });
+            }
+          }
         }
       }
 
@@ -188,12 +440,55 @@
       return shuffled.slice(0, Math.min(QUESTIONS_COUNT, shuffled.length));
     }
 
-    // Menu Screen
-    function MenuScreen({ onSelect, onStats, stats }) {
+    // ========== KIDS MODE FEEDBACK ==========
+    const KIDS_FEEDBACK = {
+      correct: ["Bravo ! 🌟", "Super ! ⭐", "Génial ! 🎉", "Trop fort ! 💪", "Ouiii ! 🥳", "Champion ! 🏆", "Excellent ! 🎊", "Parfait ! ✨", "Wow ! 🤩", "Incroyable ! 🌈"],
+      wrong: ["Presque ! 💫", "Essaie encore ! 🌈", "Pas grave ! 😊", "Tu vas y arriver ! 💪", "Continue ! 🚀", "Courage ! 🌟"],
+    };
+
+    // ========== HOME SCREEN ==========
+    function HomeScreen({ onKids, onAdvanced }) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
+          <div className="w-full max-w-md animate-fade-in">
+            <h1 className="text-4xl font-bold text-white text-center mb-2">🧮 MathQuiz</h1>
+            <p className="text-purple-200 text-center mb-10">Choisis ton aventure</p>
+
+            <div className="space-y-6">
+              {/* Mode Enfant */}
+              <button
+                onClick={onKids}
+                className="w-full py-8 rounded-3xl font-bold text-2xl bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 text-white shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col items-center gap-3 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 shine-effect opacity-30"></div>
+                <span className="text-5xl animate-float">👶</span>
+                <span>Apprendre à compter</span>
+                <span className="text-sm font-normal bg-white/20 px-3 py-1 rounded-full">GS / CP / CE1</span>
+              </button>
+
+              {/* Mode Avancé */}
+              <button
+                onClick={onAdvanced}
+                className="w-full py-8 rounded-3xl font-bold text-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col items-center gap-3 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 shine-effect opacity-20"></div>
+                <span className="text-5xl">🧠</span>
+                <span>Calcul mental avancé</span>
+                <span className="text-sm font-normal bg-white/20 px-3 py-1 rounded-full">×, ÷, +, −</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== MENU SCREEN (ADVANCED) ==========
+    function MenuScreen({ onSelect, onStats, stats, onBack }) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 animate-fade-in">
-            <h1 className="text-3xl font-bold text-white text-center mb-2">🧮 MathQuiz</h1>
+            <button onClick={onBack} className="text-blue-300 hover:text-white mb-4 transition flex items-center gap-1">← Accueil</button>
+            <h1 className="text-3xl font-bold text-white text-center mb-2">🧠 Calcul Mental</h1>
             <p className="text-blue-200 text-center mb-6">Choisis ton entraînement</p>
 
             {/* Mini stats bar */}
@@ -212,14 +507,14 @@
               </div>
             </div>
 
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 mb-6">
               {Object.entries(MODES).map(([key, mode]) => (
                 <button
                   key={key}
                   onClick={() => onSelect(key)}
-                  className={`w-full py-5 rounded-2xl font-bold text-xl bg-gradient-to-r ${mode.color} text-white shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-3`}
+                  className={`w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r ${mode.color} text-white shadow-lg hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-3`}
                 >
-                  <span className="text-2xl">{mode.icon}</span>
+                  <span className="text-xl">{mode.icon}</span>
                   {mode.label}
                 </button>
               ))}
@@ -248,7 +543,6 @@
             <button onClick={onBack} className="text-blue-300 hover:text-white mb-4 transition flex items-center gap-1">← Retour</button>
             <h1 className="text-2xl font-bold text-white text-center mb-6">🏆 Statistiques</h1>
 
-            {/* Stats grid */}
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="bg-white/5 rounded-xl p-4 text-center">
                 <div className="text-3xl font-bold text-white">{stats.totalScore}</div>
@@ -276,7 +570,6 @@
               </div>
             </div>
 
-            {/* Achievements */}
             <h2 className="text-lg font-bold text-white mb-4">🎖️ Badges ({stats.achievements.length}/{Object.keys(ACHIEVEMENTS).length})</h2>
             <div className="grid grid-cols-2 gap-3 mb-6">
               {Object.entries(ACHIEVEMENTS).map(([key, ach]) => {
@@ -309,6 +602,325 @@
       );
     }
 
+    // ========== KIDS MENU ==========
+    function KidsMenuScreen({ onStart, onPuzzles, puzzleData, onBack }) {
+      const currentPuzzle = PUZZLES[puzzleData.currentPuzzle];
+      const piecesCollected = puzzleData.puzzles[puzzleData.currentPuzzle].pieces.filter(p => p).length;
+      const completedPuzzles = puzzleData.puzzles.filter(p => p.completed).length;
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-purple-300 animate-fade-in">
+            <button onClick={onBack} className="text-purple-500 hover:text-purple-700 mb-4 transition text-lg">← Accueil</button>
+            <h1 className="text-3xl font-bold text-purple-600 text-center mb-2">👶 Apprendre à compter</h1>
+            <p className="text-purple-400 text-center mb-6">En s'amusant !</p>
+
+            {/* Puzzle progress */}
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl p-4 mb-6 border-2 border-amber-200">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-amber-700 font-medium">🧩 {currentPuzzle.name}</span>
+                <span className="text-amber-600 font-bold">{piecesCollected}/9</span>
+              </div>
+              <div className="flex justify-center mb-2">
+                <PuzzleGrid
+                  puzzle={currentPuzzle}
+                  pieces={puzzleData.puzzles[puzzleData.currentPuzzle].pieces}
+                  size="sm"
+                />
+              </div>
+              <div className="text-center text-amber-500 text-sm">
+                {completedPuzzles} puzzle{completedPuzzles > 1 ? 's' : ''} complété{completedPuzzles > 1 ? 's' : ''}
+              </div>
+            </div>
+
+            {/* Start button */}
+            <button
+              onClick={onStart}
+              className="w-full py-5 mb-4 rounded-2xl font-bold text-2xl bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg hover:scale-[1.02] transition-all animate-pulse-slow"
+            >
+              🚀 Jouer !
+            </button>
+
+            {/* View puzzles */}
+            <button
+              onClick={onPuzzles}
+              className="w-full py-4 rounded-2xl font-bold text-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition-all flex items-center justify-center gap-2"
+            >
+              🧩 Voir mes puzzles
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== KIDS CONFIG ==========
+    function KidsConfig({ onStart, onBack }) {
+      const [addOperations, setAddOperations] = useState(new Set([1, 2, 3]));
+      const [subOperations, setSubOperations] = useState(new Set());
+      const [min, setMin] = useState(10);
+      const [max, setMax] = useState(30);
+
+      const toggleAddOp = (n) => {
+        const next = new Set(addOperations);
+        if (next.has(n)) {
+          if (next.size > 1 || subOperations.size > 0) next.delete(n);
+        } else {
+          next.add(n);
+        }
+        setAddOperations(next);
+      };
+
+      const toggleSubOp = (n) => {
+        const next = new Set(subOperations);
+        if (next.has(n)) {
+          next.delete(n);
+        } else {
+          next.add(n);
+        }
+        // S'assurer qu'on a au moins une opération
+        if (next.size === 0 && addOperations.size === 0) {
+          setAddOperations(new Set([1]));
+        }
+        setSubOperations(next);
+      };
+
+      const presets = [
+        { label: "10-20", min: 10, max: 20, desc: "Débutant" },
+        { label: "10-50", min: 10, max: 50, desc: "GS/CP" },
+        { label: "20-100", min: 20, max: 100, desc: "CP/CE1" },
+      ];
+
+      const canStart = addOperations.size > 0 || subOperations.size > 0;
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-purple-300 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <button onClick={onBack} className="text-purple-500 hover:text-purple-700 mb-4 transition text-lg">← Retour</button>
+            <h1 className="text-3xl font-bold text-purple-600 text-center mb-2">⚙️ Paramètres</h1>
+            <p className="text-purple-400 text-center mb-6">Personnalise ton entraînement</p>
+
+            {/* Additions */}
+            <div className="mb-6">
+              <p className="text-green-600 text-center font-bold mb-3">➕ Additions</p>
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => toggleAddOp(n)}
+                    className={`w-12 h-12 rounded-xl font-bold text-lg transition-all duration-200 ${
+                      addOperations.has(n)
+                        ? 'bg-gradient-to-br from-green-400 to-emerald-500 text-white shadow-lg scale-110'
+                        : 'bg-gray-200 text-gray-400'
+                    }`}
+                  >
+                    +{n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Soustractions */}
+            <div className="mb-6">
+              <p className="text-orange-600 text-center font-bold mb-3">➖ Soustractions</p>
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => toggleSubOp(n)}
+                    className={`w-12 h-12 rounded-xl font-bold text-lg transition-all duration-200 ${
+                      subOperations.has(n)
+                        ? 'bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-lg scale-110'
+                        : 'bg-gray-200 text-gray-400'
+                    }`}
+                  >
+                    -{n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Presets */}
+            <div className="mb-6">
+              <p className="text-purple-500 text-center font-medium mb-3">📊 Plage de nombres</p>
+              <div className="flex gap-2">
+                {presets.map(p => (
+                  <button
+                    key={p.label}
+                    onClick={() => { setMin(p.min); setMax(p.max); }}
+                    className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+                      min === p.min && max === p.max
+                        ? 'bg-gradient-to-r from-purple-400 to-pink-400 text-white shadow-lg scale-105'
+                        : 'bg-purple-100 text-purple-500 hover:bg-purple-200'
+                    }`}
+                  >
+                    <div className="text-lg">{p.label}</div>
+                    <div className="text-xs opacity-75">{p.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom range */}
+            <div className="flex gap-4 mb-8">
+              <div className="flex-1">
+                <label className="text-purple-400 text-sm mb-1 block text-center">De</label>
+                <input
+                  type="number"
+                  value={min}
+                  onChange={e => setMin(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full py-3 px-4 rounded-xl bg-purple-50 text-purple-700 text-center font-bold text-xl outline-none focus:ring-4 focus:ring-purple-300 border-2 border-purple-200"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-purple-400 text-sm mb-1 block text-center">À</label>
+                <input
+                  type="number"
+                  value={max}
+                  onChange={e => setMax(Math.max(min + 1, parseInt(e.target.value) || min + 1))}
+                  className="w-full py-3 px-4 rounded-xl bg-purple-50 text-purple-700 text-center font-bold text-xl outline-none focus:ring-4 focus:ring-purple-300 border-2 border-purple-200"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() => canStart && onStart({
+                addOperations: Array.from(addOperations),
+                subOperations: Array.from(subOperations),
+                min,
+                max
+              })}
+              disabled={!canStart}
+              className={`w-full py-5 rounded-2xl font-bold text-2xl transition-all ${
+                canStart
+                  ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg hover:scale-[1.02]'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              🚀 C'est parti !
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== PUZZLES GALLERY ==========
+    function PuzzlesGallery({ puzzleData, onBack, onSelectPuzzle }) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-purple-300 animate-fade-in">
+            <button onClick={onBack} className="text-purple-500 hover:text-purple-700 mb-4 transition text-lg">← Retour</button>
+            <h1 className="text-3xl font-bold text-purple-600 text-center mb-2">🧩 Mes Puzzles</h1>
+            <p className="text-purple-400 text-center mb-6">
+              {puzzleData.puzzles.filter(p => p.completed).length}/{PUZZLES.length} complétés
+            </p>
+
+            <div className="space-y-4">
+              {PUZZLES.map((puzzle, idx) => {
+                const data = puzzleData.puzzles[idx];
+                const piecesCount = data.pieces.filter(p => p).length;
+                const isCurrent = puzzleData.currentPuzzle === idx;
+                const isCompleted = data.completed;
+
+                return (
+                  <button
+                    key={puzzle.id}
+                    onClick={() => onSelectPuzzle(idx)}
+                    className={`w-full p-4 rounded-2xl transition-all ${
+                      isCurrent
+                        ? `bg-gradient-to-r ${puzzle.bgColor} ${puzzle.borderColor} border-4 scale-[1.02] shadow-lg`
+                        : isCompleted
+                        ? `bg-gradient-to-r ${puzzle.bgColor} opacity-90`
+                        : 'bg-gray-100 opacity-60'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="font-bold text-lg">{isCompleted ? '🏆' : isCurrent ? '▶️' : '🔒'} {puzzle.name}</span>
+                      <span className="font-medium">{piecesCount}/9</span>
+                    </div>
+
+                    <div className="flex justify-center">
+                      <PuzzleGrid puzzle={puzzle} pieces={data.pieces} size="md" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== PUZZLE COMPLETION ANIMATION ==========
+    function PuzzleCompleteAnimation({ puzzle, onDismiss }) {
+      const allPieces = Array(9).fill(true);
+
+      return (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade-in p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-sm text-center animate-pop">
+            <div className="text-6xl mb-4 animate-celebrate">🎉</div>
+            <h2 className="text-3xl font-bold text-purple-600 mb-4">Puzzle Complété !</h2>
+
+            <div className={`bg-gradient-to-r ${puzzle.bgColor} p-4 rounded-2xl mb-6 ${puzzle.borderColor} border-4 flex justify-center`}>
+              <PuzzleGrid puzzle={puzzle} pieces={allPieces} size="lg" animate={true} />
+            </div>
+
+            <p className="text-gray-600 mb-6">Tu as débloqué <strong>{puzzle.name}</strong> !</p>
+
+            <button
+              onClick={onDismiss}
+              className="w-full py-4 rounded-2xl font-bold text-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:scale-[1.02] transition-all"
+            >
+              Super ! 🌟
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== NEW PIECE ANIMATION ==========
+    function NewPieceAnimation({ puzzle, pieceIndices, currentPieces, isPerfect, onDismiss }) {
+      // Show puzzle with newly unlocked pieces highlighted
+      const piecesWithNew = currentPieces.map((p, i) => p || pieceIndices.includes(i));
+
+      return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in p-4">
+          <div className="bg-white rounded-3xl p-8 text-center animate-pop">
+            {isPerfect && (
+              <div className="text-2xl font-bold text-yellow-500 mb-4 animate-pulse-slow">🌟 PERFECT ! 🌟</div>
+            )}
+
+            <h2 className="text-2xl font-bold text-purple-600 mb-4">
+              {pieceIndices.length > 1 ? `+${pieceIndices.length} pièces !` : '+1 pièce !'}
+            </h2>
+
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <PuzzleGrid puzzle={puzzle} pieces={piecesWithNew} size="md" />
+                {/* Highlight new pieces */}
+                <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-0.5 pointer-events-none">
+                  {Array(9).fill(0).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`${pieceIndices.includes(i) ? 'ring-4 ring-yellow-400 ring-inset animate-pulse-slow rounded-sm' : ''}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <p className="text-gray-600 mb-6">Puzzle <strong>{puzzle.name}</strong></p>
+
+            <button
+              onClick={onDismiss}
+              className="px-8 py-3 rounded-xl font-bold text-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-lg hover:scale-[1.02] transition-all"
+            >
+              Génial ! ✨
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     // Config Screen for Tables (Multiplication & Division)
     function TablesConfig({ mode, onStart, onBack }) {
       const modeInfo = MODES[mode];
@@ -328,7 +940,6 @@
       const selectAll = () => setSelected(new Set(tables));
       const selectNone = () => setSelected(new Set());
 
-      // Quand on change maxTable, on retire 11 et 12 si besoin
       const handleMaxTableChange = (newMax) => {
         setMaxTable(newMax);
         if (newMax === 10) {
@@ -346,7 +957,6 @@
             <h1 className="text-2xl font-bold text-white text-center mb-2">{modeInfo.icon} {modeInfo.label}</h1>
             <p className="text-blue-200 text-center mb-6">Sélectionne les tables</p>
 
-            {/* Max table toggle */}
             <div className="flex justify-center gap-2 mb-4">
               <span className="text-blue-300 text-sm">Tables jusqu'à :</span>
               <button
@@ -425,7 +1035,6 @@
             <h1 className="text-2xl font-bold text-white text-center mb-2">{modeInfo.icon} {modeInfo.label}</h1>
             <p className="text-blue-200 text-center mb-6">Configure la plage de nombres</p>
 
-            {/* Presets */}
             <div className="flex gap-2 mb-6">
               {presets.map(p => (
                 <button
@@ -442,7 +1051,6 @@
               ))}
             </div>
 
-            {/* Custom range */}
             <div className="flex gap-4 mb-6">
               <div className="flex-1">
                 <label className="text-blue-300 text-sm mb-1 block">Min</label>
@@ -478,6 +1086,279 @@
               C'est parti ! →
             </button>
           </div>
+        </div>
+      );
+    }
+
+    // Kids Quiz Screen
+    function KidsQuizScreen({ questions, onFinish, onMenu }) {
+      const [index, setIndex] = useState(0);
+      const [answer, setAnswer] = useState("");
+      const [results, setResults] = useState([]);
+      const [feedback, setFeedback] = useState(null);
+      const [feedbackText, setFeedbackText] = useState("");
+      const [streak, setStreak] = useState(0);
+      const [maxStreak, setMaxStreak] = useState(0);
+      const inputRef = useRef(null);
+      const feedbackRef = useRef(false);
+
+      const current = questions[index];
+
+      // Dev: triple $ = instant win
+      const cheatRef = useRef({ count: 0, timer: null });
+      useEffect(() => {
+        const handleCheat = (e) => {
+          if (e.key === '$') {
+            cheatRef.current.count++;
+            clearTimeout(cheatRef.current.timer);
+            if (cheatRef.current.count >= 3) {
+              cheatRef.current.count = 0;
+              const remaining = questions.slice(index).map(q => ({ ...q, userAnswer: q.answer, correct: true }));
+              onFinish([...results, ...remaining], results.length + remaining.length);
+            } else {
+              cheatRef.current.timer = setTimeout(() => { cheatRef.current.count = 0; }, 500);
+            }
+          }
+        };
+        window.addEventListener('keydown', handleCheat);
+        return () => { window.removeEventListener('keydown', handleCheat); clearTimeout(cheatRef.current.timer); };
+      }, [index, results, questions, onFinish]);
+
+      const nextQuestion = (newStreak, newMaxStreak) => {
+        if (index + 1 >= questions.length) {
+          const finalResult = { ...current, userAnswer: parseInt(answer) || null, correct: parseInt(answer) === current.answer };
+          onFinish([...results, finalResult], newMaxStreak);
+        } else {
+          setIndex(i => i + 1);
+          setAnswer("");
+          setFeedback(null);
+          feedbackRef.current = false;
+        }
+      };
+
+      const handleSubmit = () => {
+        if (feedbackRef.current || !answer) return;
+        feedbackRef.current = true;
+        const isCorrect = parseInt(answer) === current.answer;
+        setFeedback(isCorrect ? 'correct' : 'wrong');
+
+        const texts = isCorrect ? KIDS_FEEDBACK.correct : KIDS_FEEDBACK.wrong;
+        setFeedbackText(texts[Math.floor(Math.random() * texts.length)]);
+
+        let newStreak = streak;
+        let newMaxStreak = maxStreak;
+        if (isCorrect) {
+          newStreak = streak + 1;
+          newMaxStreak = Math.max(maxStreak, newStreak);
+          setStreak(newStreak);
+          setMaxStreak(newMaxStreak);
+        } else {
+          setStreak(0);
+        }
+
+        setResults(r => [...r, { ...current, userAnswer: parseInt(answer), correct: isCorrect }]);
+        setTimeout(() => nextQuestion(isCorrect ? newStreak : 0, newMaxStreak), 2000);
+      };
+
+      useEffect(() => {
+        if (!feedbackRef.current && inputRef.current) {
+          inputRef.current.focus();
+          setTimeout(() => {
+            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        }
+      }, [index, feedback]);
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-purple-300 animate-fade-in">
+
+            <div className="flex justify-between items-center mb-6">
+              <button onClick={onMenu} className="text-purple-400 hover:text-purple-600 text-lg transition">✕</button>
+              {streak >= 2 && (
+                <span className="text-amber-500 font-bold text-xl flex items-center gap-1 animate-pulse-slow">
+                  ⭐ {streak}
+                </span>
+              )}
+              <span className="text-purple-500 font-bold text-lg">{index + 1} / {questions.length}</span>
+            </div>
+
+            <div className="flex justify-center gap-2 mb-6">
+              {results.map((r, i) => (
+                <div key={i} className={`w-4 h-4 rounded-full ${r.correct ? 'bg-green-400' : 'bg-red-400'}`} />
+              ))}
+              {Array(questions.length - results.length).fill(0).map((_, i) => (
+                <div key={`empty-${i}`} className="w-4 h-4 rounded-full bg-purple-200" />
+              ))}
+            </div>
+
+            <div className={`text-center mb-8 transition-all duration-300 ${feedback === 'correct' ? 'scale-110' : feedback === 'wrong' ? 'animate-shake' : ''}`}>
+              <div className="text-7xl font-bold text-purple-600 mb-2">
+                {current.a} {current.op} {current.b}
+              </div>
+              <div className="text-4xl text-purple-400">= ?</div>
+            </div>
+
+            {feedback && (
+              <div className={`text-center mb-6 animate-pop`}>
+                <div className={`text-3xl font-bold ${feedback === 'correct' ? 'text-green-500' : 'text-orange-500'}`}>
+                  {feedbackText}
+                </div>
+                {feedback === 'wrong' && (
+                  <div className="text-xl text-purple-500 mt-2">
+                    C'était <span className="font-bold text-purple-700">{current.answer}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!feedback && (
+              <div>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={answer}
+                  onChange={e => setAnswer(e.target.value.replace(/[^0-9]/g, ''))}
+                  onKeyDown={e => { if (e.key === 'Enter' && answer) handleSubmit(); }}
+                  onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                  className="w-full text-center text-6xl font-bold py-6 rounded-3xl outline-none bg-purple-50 text-purple-700 border-4 border-purple-300 focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all"
+                  placeholder="?"
+                  autoComplete="off"
+                />
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={!answer}
+                  className={`w-full mt-6 py-5 rounded-2xl font-bold text-2xl transition-all ${
+                    answer
+                      ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg hover:scale-[1.02]'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  ✓ Valider
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Kids Result Screen
+    function KidsResultScreen({ results, puzzleData, earnedPiece, newPieceIndex, puzzleJustCompleted, completedPuzzleIdx, onRestart, onMenu, onDismissAnimation }) {
+      const correctCount = results.filter(r => r.correct).length;
+      const percent = Math.round((correctCount / results.length) * 100);
+
+      const getMessage = () => {
+        if (percent === 100) return { emoji: "🏆", text: "PARFAIT !", color: "text-yellow-500" };
+        if (percent >= 80) return { emoji: "🌟", text: "Super travail !", color: "text-green-500" };
+        if (percent >= 60) return { emoji: "👍", text: "Bien joué !", color: "text-blue-500" };
+        if (percent >= 40) return { emoji: "💪", text: "Continue !", color: "text-purple-500" };
+        return { emoji: "🌈", text: "Tu vas y arriver !", color: "text-pink-500" };
+      };
+
+      const msg = getMessage();
+      const stars = Math.ceil((correctCount / results.length) * 5);
+      // Pour l'affichage normal, utiliser le puzzle actuel
+      const currentPuzzle = PUZZLES[puzzleData.currentPuzzle];
+      const piecesCount = puzzleData.puzzles[puzzleData.currentPuzzle].pieces.filter(p => p).length;
+      // Pour les animations, utiliser le puzzle qui a été travaillé (avant le changement)
+      const animatedPuzzle = PUZZLES[completedPuzzleIdx ?? puzzleData.currentPuzzle];
+      const animatedPuzzlePieces = puzzleData.puzzles[completedPuzzleIdx ?? puzzleData.currentPuzzle].pieces;
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
+          {/* Confetti pour les perfect ! */}
+          {percent === 100 && <Confetti count={60} />}
+
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-purple-300 animate-fade-in text-center">
+
+            <div className="text-8xl mb-4 animate-pop">{msg.emoji}</div>
+
+            <div className="flex justify-center gap-2 mb-4">
+              {[1,2,3,4,5].map(i => (
+                <span
+                  key={i}
+                  className={`text-4xl ${i <= stars ? 'animate-star-pop' : 'opacity-30'}`}
+                  style={i <= stars ? { animationDelay: `${(i - 1) * 0.15}s` } : {}}
+                >
+                  {i <= stars ? '⭐' : '☆'}
+                </span>
+              ))}
+            </div>
+
+            <div className={`text-4xl font-bold mb-2 ${msg.color}`}>{msg.text}</div>
+            <div className="text-2xl text-purple-500 mb-4">
+              {correctCount} / {results.length} bonnes réponses
+            </div>
+
+            {/* Puzzle progress */}
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl p-4 mb-6 border-2 border-amber-200">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-amber-700 font-medium">🧩 {currentPuzzle.name}</span>
+                <span className="text-amber-600 font-bold">{piecesCount}/9</span>
+              </div>
+              <div className="flex justify-center mb-3">
+                <PuzzleGrid
+                  puzzle={currentPuzzle}
+                  pieces={puzzleData.puzzles[puzzleData.currentPuzzle].pieces}
+                  size="sm"
+                />
+              </div>
+              {earnedPiece && newPieceIndex.length > 0 ? (
+                <div className="text-green-600 font-bold text-center">
+                  +{newPieceIndex.length} pièce{newPieceIndex.length > 1 ? 's' : ''} ! {percent === 100 ? '🌟' : '✨'}
+                </div>
+              ) : percent < 70 ? (
+                <div className="text-gray-500 text-sm text-center">≥70% = 1 pièce · 100% = 2 pièces</div>
+              ) : (
+                <div className="text-amber-600 text-sm text-center">Puzzle complet ! 🎉</div>
+              )}
+            </div>
+
+            <div className="bg-purple-50 rounded-2xl p-4 mb-6 max-h-32 overflow-y-auto">
+              {results.map((r, i) => (
+                <div key={i} className={`flex justify-between items-center py-1 text-lg ${r.correct ? 'text-green-600' : 'text-red-500'}`}>
+                  <span>{r.a} {r.op} {r.b} = {r.answer}</span>
+                  <span>{r.correct ? '✓' : '✗'}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={onRestart}
+                className="w-full py-5 rounded-2xl font-bold text-2xl bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg hover:scale-[1.02] transition-all"
+              >
+                🔄 Rejouer
+              </button>
+              <button
+                onClick={onMenu}
+                className="w-full py-4 rounded-2xl font-bold text-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition-all"
+              >
+                ← Menu
+              </button>
+            </div>
+          </div>
+
+          {/* Animations */}
+          {earnedPiece && !puzzleJustCompleted && newPieceIndex.length > 0 && (
+            <NewPieceAnimation
+              puzzle={animatedPuzzle}
+              pieceIndices={newPieceIndex}
+              currentPieces={animatedPuzzlePieces}
+              isPerfect={percent === 100}
+              onDismiss={onDismissAnimation}
+            />
+          )}
+          {puzzleJustCompleted && (
+            <PuzzleCompleteAnimation
+              puzzle={animatedPuzzle}
+              onDismiss={onDismissAnimation}
+            />
+          )}
         </div>
       );
     }
@@ -524,7 +1405,26 @@
 
       const current = questions[index];
 
-      // Keep answerRef in sync
+      // Dev: triple $ = instant win
+      const cheatRef = useRef({ count: 0, timer: null });
+      useEffect(() => {
+        const handleCheat = (e) => {
+          if (e.key === '$') {
+            cheatRef.current.count++;
+            clearTimeout(cheatRef.current.timer);
+            if (cheatRef.current.count >= 3) {
+              cheatRef.current.count = 0;
+              const remaining = questions.slice(index).map(q => ({ ...q, userAnswer: q.answer, correct: true }));
+              onFinish([...results, ...remaining], results.length + remaining.length);
+            } else {
+              cheatRef.current.timer = setTimeout(() => { cheatRef.current.count = 0; }, 500);
+            }
+          }
+        };
+        window.addEventListener('keydown', handleCheat);
+        return () => { window.removeEventListener('keydown', handleCheat); clearTimeout(cheatRef.current.timer); };
+      }, [index, results, questions, onFinish]);
+
       useEffect(() => {
         answerRef.current = answer;
       }, [answer]);
@@ -548,7 +1448,6 @@
 
         const currentAnswer = answerRef.current;
 
-        // Si une réponse a été entrée, on la considère
         if (currentAnswer) {
           const isCorrect = parseInt(currentAnswer) === current.answer;
           setFeedback(isCorrect ? 'correct' : 'wrong');
@@ -567,7 +1466,6 @@
           setResults(r => [...r, { ...current, userAnswer: parseInt(currentAnswer), correct: isCorrect }]);
           setTimeout(() => nextQuestion(isCorrect ? newStreak : 0, newMaxStreak), 1200);
         } else {
-          // Pas de réponse = faux
           setFeedback('wrong');
           setStreak(0);
           setResults(r => [...r, { ...current, userAnswer: null, correct: false }]);
@@ -613,7 +1511,6 @@
       useEffect(() => {
         if (!feedbackRef.current && inputRef.current) {
           inputRef.current.focus();
-          // Mobile: scroll input into view when keyboard opens
           setTimeout(() => {
             inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }, 300);
@@ -728,6 +1625,9 @@
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+          {/* Confetti pour les perfect ! */}
+          {percent === 100 && <Confetti count={50} />}
+
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20 animate-fade-in">
             <div className="text-center mb-6">
               <div className="text-6xl mb-4 animate-pop">{msg.emoji}</div>
@@ -736,7 +1636,6 @@
               <div className="text-xl text-blue-200">{msg.text}</div>
             </div>
 
-            {/* New achievements */}
             {newAchievements.length > 0 && (
               <div className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-2xl p-4 mb-6 border border-amber-500/30 animate-pop">
                 <div className="text-amber-300 font-bold text-center mb-3">🎉 {newAchievements.length > 1 ? 'Nouveaux badges !' : 'Nouveau badge !'}</div>
@@ -792,7 +1691,7 @@
 
     // Main App
     function App() {
-      const [screen, setScreen] = useState('menu');
+      const [screen, setScreen] = useState('home');
       const [mode, setMode] = useState(null);
       const [gameConfig, setGameConfig] = useState(null);
       const [difficulty, setDifficulty] = useState('normal');
@@ -801,6 +1700,20 @@
       const [stats, setStats] = useState(loadStats);
       const [newAchievements, setNewAchievements] = useState([]);
       const [currentStreak, setCurrentStreak] = useState(0);
+      const [puzzleData, setPuzzleData] = useState(loadPuzzles);
+      const [earnedPiece, setEarnedPiece] = useState(false);
+      const [newPieceIndex, setNewPieceIndex] = useState(null);
+      const [puzzleJustCompleted, setPuzzleJustCompleted] = useState(false);
+      const [completedPuzzleIdx, setCompletedPuzzleIdx] = useState(null);
+      const [showAnimation, setShowAnimation] = useState(false);
+
+      // Navigation
+      const goHome = () => { setScreen('home'); setMode(null); setNewAchievements([]); setEarnedPiece(false); setPuzzleJustCompleted(false); };
+      const goKidsMenu = () => setScreen('kids-menu');
+      const goAdvancedMenu = () => setScreen('menu');
+      const goStats = () => setScreen('stats');
+      const goPuzzles = () => setScreen('puzzles');
+      const goKidsConfig = () => setScreen('kids-config');
 
       const selectMode = (selectedMode) => {
         setMode(selectedMode);
@@ -817,13 +1730,11 @@
       };
 
       const finishQuiz = (quizResults, maxStreak) => {
-        // Calculate stats
         const correctCount = quizResults.filter(r => r.correct).length;
         const diffConfig = DIFFICULTY[difficulty];
         const score = Math.round(correctCount * diffConfig.multiplier * 10);
         const isPerfect = correctCount === quizResults.length;
 
-        // Check achievements
         const gameData = {
           results: quizResults,
           difficulty,
@@ -832,7 +1743,6 @@
         const unlocked = checkAchievements(stats, gameData);
         setNewAchievements(unlocked);
 
-        // Update stats
         const newStats = {
           ...stats,
           totalScore: stats.totalScore + score,
@@ -860,7 +1770,116 @@
 
       const goConfig = () => setScreen('config');
       const goMenu = () => { setScreen('menu'); setMode(null); setNewAchievements([]); };
-      const goStats = () => setScreen('stats');
+
+      // Kids mode
+      const startKidsQuiz = (config) => {
+        setGameConfig(config);
+        setMode('kids');
+        setDifficulty('zen');
+        setQuestions(generateQuestions('kids', config));
+        setResults([]);
+        setCurrentStreak(0);
+        setEarnedPiece(false);
+        setNewPieceIndex(null);
+        setPuzzleJustCompleted(false);
+        setScreen('kids-quiz');
+      };
+
+      const finishKidsQuiz = (quizResults, maxStreak) => {
+        const correctCount = quizResults.filter(r => r.correct).length;
+        const percent = Math.round((correctCount / quizResults.length) * 100);
+        const score = correctCount * 5;
+        const isPerfect = percent === 100;
+
+        // Check if earned puzzle pieces (≥70% = 1 piece, 100% = 2 pieces)
+        let piecesEarned = 0;
+        let pieceIndices = [];
+        let justCompleted = false;
+
+        if (percent >= 70) {
+          const piecesToEarn = isPerfect ? 2 : 1;
+          const currentPuzzleIdx = puzzleData.currentPuzzle;
+          const currentPuzzlePieces = [...puzzleData.puzzles[currentPuzzleIdx].pieces];
+
+          // Find missing pieces
+          for (let i = 0; i < piecesToEarn; i++) {
+            const missingIdx = currentPuzzlePieces.findIndex(p => !p);
+            if (missingIdx !== -1) {
+              currentPuzzlePieces[missingIdx] = true;
+              pieceIndices.push(missingIdx);
+              piecesEarned++;
+            }
+          }
+
+          if (piecesEarned > 0) {
+            // Update puzzle data
+            const newPuzzles = JSON.parse(JSON.stringify(puzzleData));
+            newPuzzles.puzzles[currentPuzzleIdx].pieces = currentPuzzlePieces;
+
+            // Check if puzzle just completed
+            const allPiecesNow = currentPuzzlePieces.every(p => p);
+            if (allPiecesNow) {
+              newPuzzles.puzzles[currentPuzzleIdx].completed = true;
+              justCompleted = true;
+
+              // Move to next incomplete puzzle
+              const nextIncomplete = newPuzzles.puzzles.findIndex((p, i) => i !== currentPuzzleIdx && !p.completed);
+              if (nextIncomplete !== -1) {
+                newPuzzles.currentPuzzle = nextIncomplete;
+              }
+            }
+
+            setPuzzleData(newPuzzles);
+            savePuzzles(newPuzzles);
+          }
+        }
+
+        setEarnedPiece(piecesEarned > 0);
+        setNewPieceIndex(pieceIndices);
+        setPuzzleJustCompleted(justCompleted);
+        setCompletedPuzzleIdx(puzzleData.currentPuzzle); // Garder l'index du puzzle actuel AVANT le changement
+        setShowAnimation(piecesEarned > 0);
+
+        // Update stats
+        const newStats = {
+          ...stats,
+          totalScore: stats.totalScore + score,
+          gamesPlayed: stats.gamesPlayed + 1,
+          perfectGames: stats.perfectGames + (correctCount === quizResults.length ? 1 : 0),
+          bestStreak: Math.max(stats.bestStreak, maxStreak),
+          totalCorrect: stats.totalCorrect + correctCount,
+          totalQuestions: stats.totalQuestions + quizResults.length,
+        };
+
+        setStats(newStats);
+        saveStats(newStats);
+        setResults(quizResults);
+        setScreen('kids-result');
+      };
+
+      const restartKids = () => {
+        setQuestions(generateQuestions('kids', gameConfig));
+        setResults([]);
+        setCurrentStreak(0);
+        setEarnedPiece(false);
+        setNewPieceIndex(null);
+        setPuzzleJustCompleted(false);
+        setScreen('kids-quiz');
+      };
+
+      const dismissAnimation = () => {
+        setShowAnimation(false);
+        setEarnedPiece(false);
+        setPuzzleJustCompleted(false);
+      };
+
+      const selectPuzzle = (idx) => {
+        if (!puzzleData.puzzles[idx].completed || puzzleData.currentPuzzle === idx) {
+          const newData = { ...puzzleData, currentPuzzle: idx };
+          setPuzzleData(newData);
+          savePuzzles(newData);
+        }
+      };
 
       const resetStats = () => {
         if (confirm('Réinitialiser toutes les statistiques ?')) {
@@ -869,9 +1888,35 @@
         }
       };
 
-      if (screen === 'menu') return <MenuScreen onSelect={selectMode} onStats={goStats} stats={stats} />;
+      const resetPuzzles = () => {
+        if (confirm('Réinitialiser tous les puzzles ?')) {
+          setPuzzleData(defaultPuzzles);
+          savePuzzles(defaultPuzzles);
+        }
+      };
 
+      // Render
+      if (screen === 'home') return <HomeScreen onKids={goKidsMenu} onAdvanced={goAdvancedMenu} />;
+      if (screen === 'menu') return <MenuScreen onSelect={selectMode} onStats={goStats} stats={stats} onBack={goHome} />;
       if (screen === 'stats') return <StatsScreen stats={stats} onBack={goMenu} onReset={resetStats} />;
+
+      if (screen === 'kids-menu') return <KidsMenuScreen onStart={goKidsConfig} onPuzzles={goPuzzles} puzzleData={puzzleData} onBack={goHome} />;
+      if (screen === 'kids-config') return <KidsConfig onStart={startKidsQuiz} onBack={goKidsMenu} />;
+      if (screen === 'kids-quiz') return <KidsQuizScreen questions={questions} onFinish={finishKidsQuiz} onMenu={goKidsMenu} />;
+      if (screen === 'kids-result') return (
+        <KidsResultScreen
+          results={results}
+          puzzleData={puzzleData}
+          earnedPiece={showAnimation && earnedPiece}
+          newPieceIndex={newPieceIndex}
+          puzzleJustCompleted={showAnimation && puzzleJustCompleted}
+          completedPuzzleIdx={completedPuzzleIdx}
+          onRestart={restartKids}
+          onMenu={goKidsMenu}
+          onDismissAnimation={dismissAnimation}
+        />
+      );
+      if (screen === 'puzzles') return <PuzzlesGallery puzzleData={puzzleData} onBack={goKidsMenu} onSelectPuzzle={selectPuzzle} />;
 
       if (screen === 'config') {
         if (mode === 'multiplication' || mode === 'division') {
