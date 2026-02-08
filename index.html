@@ -84,6 +84,48 @@
 
     /* Selection color */
     ::selection { background: rgba(168, 85, 247, 0.4); }
+
+    /* Button hover effects */
+    .btn-glow:hover {
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.3);
+    }
+    .btn-glow-green:hover {
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3);
+    }
+
+    /* Smooth transitions globales */
+    button, a { transition: all 0.2s ease-out; }
+
+    /* Active state */
+    button:active { transform: scale(0.97); }
+
+    /* Focus ring */
+    button:focus-visible {
+      outline: 2px solid rgba(168, 85, 247, 0.8);
+      outline-offset: 2px;
+    }
+
+    /* Card hover */
+    .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+
+    /* Gradient text */
+    .text-gradient {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Loading dots */
+    @keyframes dots { 0%, 20% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+    .loading-dot { animation: dots 1.4s infinite; }
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Success checkmark */
+    @keyframes checkmark { 0% { stroke-dashoffset: 50; } 100% { stroke-dashoffset: 0; } }
+    .checkmark { stroke-dasharray: 50; stroke-dashoffset: 50; animation: checkmark 0.5s ease-out forwards; }
   </style>
 </head>
 <body>
@@ -112,10 +154,16 @@
     const defaultPuzzles = {
       currentPuzzle: 0,
       puzzles: [
-        { id: 0, pieces: Array(9).fill(false), completed: false },
-        { id: 1, pieces: Array(9).fill(false), completed: false },
-        { id: 2, pieces: Array(9).fill(false), completed: false },
-        { id: 3, pieces: Array(9).fill(false), completed: false },
+        { id: 0, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 1, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 2, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 3, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 4, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 5, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 6, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 7, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 8, pieces: Array(9).fill(false), completed: false, lives: 0 },
+        { id: 9, pieces: Array(9).fill(false), completed: false, lives: 0 },
       ],
     };
 
@@ -137,7 +185,13 @@
     function loadPuzzles() {
       try {
         const saved = localStorage.getItem(PUZZLE_KEY);
-        return saved ? { ...defaultPuzzles, ...JSON.parse(saved) } : defaultPuzzles;
+        if (!saved) return defaultPuzzles;
+        const parsed = JSON.parse(saved);
+        // Merge puzzles array to ensure all 10 entries exist
+        const mergedPuzzles = defaultPuzzles.puzzles.map((def, idx) =>
+          parsed.puzzles && parsed.puzzles[idx] ? { ...def, ...parsed.puzzles[idx] } : def
+        );
+        return { ...defaultPuzzles, ...parsed, puzzles: mergedPuzzles };
       } catch {
         return defaultPuzzles;
       }
@@ -225,6 +279,118 @@
         <ellipse cx="150" cy="165" rx="25" ry="8" fill="#fdf4ff"/>
         <circle cx="220" cy="120" r="15" fill="#fef08a"/>
         <polygon points="220,100 225,110 235,110 227,118 230,128 220,122 210,128 213,118 205,110 215,110" fill="#fde047"/>
+      </svg>`,
+      robot: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#e0f2fe" width="300" height="300"/>
+        <rect x="100" y="80" width="100" height="90" rx="15" fill="#64748b"/>
+        <rect x="90" y="90" width="120" height="70" rx="10" fill="#94a3b8"/>
+        <circle cx="125" cy="125" r="18" fill="#1e293b"/>
+        <circle cx="175" cy="125" r="18" fill="#1e293b"/>
+        <circle cx="125" cy="125" r="10" fill="#22d3ee"/>
+        <circle cx="175" cy="125" r="10" fill="#22d3ee"/>
+        <rect x="135" y="145" width="30" height="8" rx="2" fill="#1e293b"/>
+        <rect x="140" y="40" width="20" height="40" fill="#94a3b8"/>
+        <circle cx="150" cy="35" r="12" fill="#f87171"/>
+        <rect x="110" y="170" width="80" height="70" rx="10" fill="#64748b"/>
+        <rect x="120" y="185" width="60" height="15" rx="3" fill="#1e293b"/>
+        <rect x="130" y="210" width="15" height="20" fill="#22d3ee"/>
+        <rect x="155" y="210" width="15" height="20" fill="#22d3ee"/>
+        <rect x="60" y="180" width="50" height="20" rx="5" fill="#94a3b8"/>
+        <rect x="190" y="180" width="50" height="20" rx="5" fill="#94a3b8"/>
+        <rect x="120" y="240" width="25" height="40" fill="#64748b"/>
+        <rect x="155" y="240" width="25" height="40" fill="#64748b"/>
+      </svg>`,
+      rocket: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#1e1b4b" width="300" height="300"/>
+        <circle cx="50" cy="80" r="3" fill="white"/><circle cx="250" cy="50" r="2" fill="white"/>
+        <circle cx="200" cy="100" r="2" fill="white"/><circle cx="80" cy="200" r="3" fill="white"/>
+        <circle cx="230" cy="180" r="2" fill="white"/><circle cx="40" cy="250" r="2" fill="white"/>
+        <ellipse cx="150" cy="150" rx="35" ry="80" fill="#e2e8f0"/>
+        <ellipse cx="150" cy="150" rx="25" ry="70" fill="#f1f5f9"/>
+        <ellipse cx="150" cy="100" rx="25" ry="30" fill="#ef4444"/>
+        <circle cx="150" cy="140" r="20" fill="#0ea5e9"/>
+        <circle cx="150" cy="140" r="12" fill="#7dd3fc"/>
+        <polygon points="105,180 85,220 115,190" fill="#64748b"/>
+        <polygon points="195,180 215,220 185,190" fill="#64748b"/>
+        <polygon points="130,230 150,280 170,230" fill="#f97316"/>
+        <polygon points="140,230 150,260 160,230" fill="#fbbf24"/>
+        <polygon points="120,225 135,250 145,225" fill="#f97316"/>
+        <polygon points="155,225 165,250 180,225" fill="#f97316"/>
+      </svg>`,
+      cat: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#fef9c3" width="300" height="300"/>
+        <ellipse cx="150" cy="200" rx="80" ry="60" fill="#f97316"/>
+        <circle cx="150" cy="130" r="70" fill="#f97316"/>
+        <polygon points="85,80 70,20 110,70" fill="#f97316"/>
+        <polygon points="215,80 230,20 190,70" fill="#f97316"/>
+        <polygon points="90,75 75,30 105,68" fill="#fda4af"/>
+        <polygon points="210,75 225,30 195,68" fill="#fda4af"/>
+        <ellipse cx="120" cy="120" rx="18" ry="22" fill="white"/>
+        <ellipse cx="180" cy="120" rx="18" ry="22" fill="white"/>
+        <ellipse cx="123" cy="125" rx="10" ry="14" fill="#1e293b"/>
+        <ellipse cx="183" cy="125" rx="10" ry="14" fill="#1e293b"/>
+        <ellipse cx="150" cy="155" rx="12" ry="8" fill="#fda4af"/>
+        <path d="M150,163 L145,175 L155,175 Z" fill="#fda4af"/>
+        <path d="M130,165 Q150,180 170,165" stroke="#1e293b" stroke-width="3" fill="none"/>
+        <line x1="90" y1="145" x2="50" y2="140" stroke="#1e293b" stroke-width="2"/>
+        <line x1="90" y1="155" x2="50" y2="160" stroke="#1e293b" stroke-width="2"/>
+        <line x1="210" y1="145" x2="250" y2="140" stroke="#1e293b" stroke-width="2"/>
+        <line x1="210" y1="155" x2="250" y2="160" stroke="#1e293b" stroke-width="2"/>
+        <path d="M220,220 Q260,200 250,260 Q240,290 220,270" fill="#f97316"/>
+      </svg>`,
+      owl: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#1e3a5f" width="300" height="300"/>
+        <circle cx="80" cy="50" r="8" fill="#fef08a"/>
+        <circle cx="220" cy="80" r="5" fill="#fef08a"/>
+        <ellipse cx="150" cy="180" rx="70" ry="90" fill="#78350f"/>
+        <ellipse cx="150" cy="200" rx="50" ry="60" fill="#fef3c7"/>
+        <circle cx="115" cy="140" r="35" fill="white"/>
+        <circle cx="185" cy="140" r="35" fill="white"/>
+        <circle cx="115" cy="140" r="20" fill="#f59e0b"/>
+        <circle cx="185" cy="140" r="20" fill="#f59e0b"/>
+        <circle cx="115" cy="140" r="10" fill="#1e293b"/>
+        <circle cx="185" cy="140" r="10" fill="#1e293b"/>
+        <polygon points="150,160 140,185 160,185" fill="#f97316"/>
+        <ellipse cx="100" cy="85" rx="25" ry="20" fill="#78350f"/>
+        <ellipse cx="200" cy="85" rx="25" ry="20" fill="#78350f"/>
+        <path d="M80,230 L70,280" stroke="#78350f" stroke-width="12"/>
+        <path d="M220,230 L230,280" stroke="#78350f" stroke-width="12"/>
+        <ellipse cx="150" cy="220" rx="30" ry="15" fill="#d4a574"/>
+        <path d="M120,220 L150,240 L180,220" stroke="#92400e" stroke-width="3" fill="none"/>
+      </svg>`,
+      rainbow: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#e0f2fe" width="300" height="300"/>
+        <ellipse cx="60" cy="250" rx="50" ry="30" fill="white"/>
+        <ellipse cx="90" cy="260" rx="40" ry="25" fill="white"/>
+        <ellipse cx="240" cy="250" rx="50" ry="30" fill="white"/>
+        <ellipse cx="210" cy="260" rx="40" ry="25" fill="white"/>
+        <path d="M30,250 Q150,20 270,250" stroke="#ef4444" stroke-width="20" fill="none"/>
+        <path d="M50,250 Q150,50 250,250" stroke="#f97316" stroke-width="20" fill="none"/>
+        <path d="M70,250 Q150,80 230,250" stroke="#fbbf24" stroke-width="20" fill="none"/>
+        <path d="M90,250 Q150,110 210,250" stroke="#22c55e" stroke-width="20" fill="none"/>
+        <path d="M110,250 Q150,140 190,250" stroke="#3b82f6" stroke-width="20" fill="none"/>
+        <path d="M130,250 Q150,170 170,250" stroke="#8b5cf6" stroke-width="20" fill="none"/>
+        <circle cx="70" cy="80" r="25" fill="#fbbf24"/>
+        <line x1="70" y1="45" x2="70" y2="25" stroke="#fbbf24" stroke-width="4"/>
+        <line x1="40" y1="60" x2="25" y2="50" stroke="#fbbf24" stroke-width="4"/>
+        <line x1="100" y1="60" x2="115" y2="50" stroke="#fbbf24" stroke-width="4"/>
+        <line x1="40" y1="100" x2="25" y2="110" stroke="#fbbf24" stroke-width="4"/>
+        <line x1="100" y1="100" x2="115" y2="110" stroke="#fbbf24" stroke-width="4"/>
+      </svg>`,
+      star: `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#312e81" width="300" height="300"/>
+        <circle cx="50" cy="50" r="2" fill="white"/><circle cx="100" cy="80" r="1" fill="white"/>
+        <circle cx="200" cy="40" r="2" fill="white"/><circle cx="250" cy="100" r="1" fill="white"/>
+        <circle cx="30" cy="150" r="1" fill="white"/><circle cx="270" cy="200" r="2" fill="white"/>
+        <circle cx="80" cy="250" r="1" fill="white"/><circle cx="220" cy="270" r="1" fill="white"/>
+        <polygon points="150,30 170,100 245,100 185,145 210,220 150,175 90,220 115,145 55,100 130,100" fill="#fbbf24"/>
+        <polygon points="150,60 165,110 220,110 175,140 195,195 150,165 105,195 125,140 80,110 135,110" fill="#fde047"/>
+        <circle cx="150" cy="130" r="25" fill="#fbbf24"/>
+        <circle cx="140" cy="125" r="5" fill="#1e293b"/>
+        <circle cx="160" cy="125" r="5" fill="#1e293b"/>
+        <path d="M140,145 Q150,155 160,145" stroke="#1e293b" stroke-width="3" fill="none"/>
+        <circle cx="130" cy="115" r="8" fill="#fca5a5" opacity="0.5"/>
+        <circle cx="170" cy="115" r="8" fill="#fca5a5" opacity="0.5"/>
       </svg>`
     };
 
@@ -257,6 +423,48 @@
         bgColor: "from-pink-100 to-purple-200",
         borderColor: "border-pink-400",
       },
+      {
+        id: 4,
+        name: "Robot",
+        theme: "robot",
+        bgColor: "from-slate-100 to-cyan-200",
+        borderColor: "border-slate-400",
+      },
+      {
+        id: 5,
+        name: "Fusée",
+        theme: "rocket",
+        bgColor: "from-indigo-900 to-purple-900",
+        borderColor: "border-indigo-400",
+      },
+      {
+        id: 6,
+        name: "Chat",
+        theme: "cat",
+        bgColor: "from-yellow-100 to-orange-200",
+        borderColor: "border-orange-400",
+      },
+      {
+        id: 7,
+        name: "Hibou",
+        theme: "owl",
+        bgColor: "from-amber-100 to-amber-200",
+        borderColor: "border-amber-500",
+      },
+      {
+        id: 8,
+        name: "Arc-en-ciel",
+        theme: "rainbow",
+        bgColor: "from-sky-100 to-pink-100",
+        borderColor: "border-sky-400",
+      },
+      {
+        id: 9,
+        name: "Étoile",
+        theme: "star",
+        bgColor: "from-indigo-200 to-yellow-100",
+        borderColor: "border-yellow-400",
+      },
     ];
 
     // ========== CONFETTI COMPONENT ==========
@@ -288,6 +496,596 @@
               }}
             />
           ))}
+        </div>
+      );
+    }
+
+    // ========== BREAKOUT GAME ==========
+    // Level patterns (1 = brick, 0 = empty, 2 = powerup brick)
+    const LEVELS = [
+      { name: "Classique", pattern: [
+        [1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1],
+        [1,1,2,1,1,2,1,1],
+        [1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1],
+      ]},
+      { name: "Pyramide", pattern: [
+        [0,0,0,1,1,0,0,0],
+        [0,0,1,1,1,1,0,0],
+        [0,1,1,2,2,1,1,0],
+        [1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1],
+      ]},
+      { name: "Damier", pattern: [
+        [1,0,1,0,1,0,1,0],
+        [0,1,0,1,0,1,0,1],
+        [1,0,2,0,1,0,2,0],
+        [0,1,0,1,0,1,0,1],
+        [1,0,1,0,1,0,1,0],
+      ]},
+      { name: "Coeur", pattern: [
+        [0,1,1,0,0,1,1,0],
+        [1,1,1,1,1,1,1,1],
+        [1,1,2,1,1,2,1,1],
+        [0,1,1,1,1,1,1,0],
+        [0,0,1,1,1,1,0,0],
+      ]},
+      { name: "Forteresse", pattern: [
+        [1,0,0,1,1,0,0,1],
+        [1,1,1,1,1,1,1,1],
+        [1,2,1,0,0,1,2,1],
+        [1,1,1,1,1,1,1,1],
+        [1,0,0,1,1,0,0,1],
+      ]},
+    ];
+
+    function BreakoutGame({ lives, onLoseLife, onExit }) {
+      const canvasRef = useRef(null);
+      const [gameState, setGameState] = useState('ready'); // ready, playing, won, lost, levelComplete
+      const [score, setScore] = useState(0);
+      const [currentLives, setCurrentLives] = useState(lives);
+      // Charger le niveau sauvegardé
+      const [level, setLevel] = useState(() => parseInt(localStorage.getItem('breakoutLevel') || '0', 10));
+      const [powerUps, setPowerUps] = useState({ wide: 0, slow: 0 }); // temps restant en secondes
+      const gameRef = useRef({});
+      const powerUpsRef = useRef({ wide: 0, slow: 0 }); // Pour accès dans gameLoop
+      const cheatBufferRef = useRef([]);
+
+      // Sauvegarder le niveau
+      useEffect(() => {
+        localStorage.setItem('breakoutLevel', level.toString());
+      }, [level]);
+
+      // Cheat code $$$ pour victoire instantanée
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.key === '$') {
+            cheatBufferRef.current.push(Date.now());
+            if (cheatBufferRef.current.length > 3) cheatBufferRef.current.shift();
+            if (cheatBufferRef.current.length === 3) {
+              const timeDiff = cheatBufferRef.current[2] - cheatBufferRef.current[0];
+              if (timeDiff < 2000) {
+                // Détruire toutes les briques
+                if (gameRef.current.bricks) {
+                  gameRef.current.bricks.forEach(b => b.alive = false);
+                }
+                cheatBufferRef.current = [];
+              }
+            }
+          }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, []);
+
+      const initLevel = (lvl) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const W = canvas.width = 320;
+        const H = canvas.height = 480;
+        const pattern = LEVELS[lvl % LEVELS.length].pattern;
+        const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+        const brickW = 36, brickH = 15, brickPad = 3, brickTop = 50;
+        const bricks = [];
+
+        pattern.forEach((row, r) => {
+          row.forEach((cell, c) => {
+            if (cell > 0) {
+              // Briques métal : 2 coups à partir niveau 2, 3 coups à partir niveau 4
+              // Certaines briques aléatoires deviennent métal
+              let hp = 1;
+              let isMetal = false;
+              if (lvl >= 1 && Math.random() < 0.3) { // 30% de chances
+                hp = 2;
+                isMetal = true;
+              }
+              if (lvl >= 3 && Math.random() < 0.2) { // 20% de chances de 3HP
+                hp = 3;
+                isMetal = true;
+              }
+              bricks.push({
+                x: c * (brickW + brickPad) + 10,
+                y: r * (brickH + brickPad) + brickTop,
+                w: brickW, h: brickH,
+                alive: true,
+                color: colors[r],
+                hasPowerUp: cell === 2,
+                hp: hp,
+                maxHp: hp,
+                isMetal: isMetal
+              });
+            }
+          });
+        });
+
+        const baseW = powerUpsRef.current.wide > 0 ? 120 : 90;
+        const paddle = { x: W/2 - baseW/2, y: H - 30, w: baseW, h: 12 };
+        const speed = powerUpsRef.current.slow > 0 ? 2 : 2.5;
+        const ball = { x: W/2, y: H - 50, r: 8, dx: 0, dy: 0, speed, launched: false };
+        const fallingPowerUps = []; // power-ups qui tombent
+        const particles = []; // particules d'effet
+
+        gameRef.current = { paddle, ball, bricks, fallingPowerUps, particles, running: false, score: gameRef.current.score || 0, W, H };
+        draw();
+      };
+
+      const draw = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const { paddle, ball, bricks, fallingPowerUps, W, H } = gameRef.current;
+        const pups = powerUpsRef.current;
+
+        // Background gradient
+        const bgGradient = ctx.createLinearGradient(0, 0, 0, H);
+        bgGradient.addColorStop(0, '#1e1b4b');
+        bgGradient.addColorStop(1, '#0f0a2e');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, W, H);
+        // Stars effect
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        for (let i = 0; i < 20; i++) {
+          const sx = (i * 37 + level * 13) % W;
+          const sy = (i * 23 + level * 7) % (H - 100);
+          ctx.beginPath();
+          ctx.arc(sx, sy, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Paddle with gradient
+        const paddleGradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.h);
+        if (pups.wide > 0) {
+          paddleGradient.addColorStop(0, '#4ade80');
+          paddleGradient.addColorStop(1, '#16a34a');
+        } else {
+          paddleGradient.addColorStop(0, '#a78bfa');
+          paddleGradient.addColorStop(1, '#7c3aed');
+        }
+        ctx.fillStyle = paddleGradient;
+        ctx.beginPath();
+        ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 6);
+        ctx.fill();
+        // Paddle shine
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath();
+        ctx.roundRect(paddle.x + 4, paddle.y + 2, paddle.w - 8, 4, 2);
+        ctx.fill();
+
+        // Ball with glow effect
+        const ballColor = pups.slow > 0 ? '#60a5fa' : '#fbbf24';
+        const glowColor = pups.slow > 0 ? 'rgba(96, 165, 250, 0.4)' : 'rgba(251, 191, 36, 0.4)';
+        // Glow
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r + 4, 0, Math.PI * 2);
+        ctx.fillStyle = glowColor;
+        ctx.fill();
+        // Ball
+        ctx.fillStyle = ballColor;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fill();
+        // Shine
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.beginPath();
+        ctx.arc(ball.x - 2, ball.y - 2, ball.r / 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bricks
+        bricks.forEach(b => {
+          if (b.alive) {
+            // Couleur de base ou métal
+            if (b.isMetal) {
+              // Dégradé métallique gris
+              const gradient = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
+              gradient.addColorStop(0, '#9ca3af');
+              gradient.addColorStop(0.5, '#6b7280');
+              gradient.addColorStop(1, '#4b5563');
+              ctx.fillStyle = gradient;
+            } else {
+              ctx.fillStyle = b.color;
+            }
+            ctx.beginPath();
+            ctx.roundRect(b.x, b.y, b.w, b.h, 3);
+            ctx.fill();
+
+            // Bordure métallique
+            if (b.isMetal) {
+              ctx.strokeStyle = '#d1d5db';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+
+            // Fissures selon les dégâts
+            if (b.isMetal && b.hp < b.maxHp) {
+              ctx.strokeStyle = '#1f2937';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              if (b.maxHp - b.hp >= 1) {
+                // Première fissure
+                ctx.moveTo(b.x + b.w * 0.3, b.y);
+                ctx.lineTo(b.x + b.w * 0.5, b.y + b.h * 0.5);
+                ctx.lineTo(b.x + b.w * 0.4, b.y + b.h);
+              }
+              if (b.maxHp - b.hp >= 2) {
+                // Deuxième fissure
+                ctx.moveTo(b.x + b.w * 0.7, b.y);
+                ctx.lineTo(b.x + b.w * 0.6, b.y + b.h * 0.6);
+                ctx.lineTo(b.x + b.w * 0.8, b.y + b.h);
+              }
+              ctx.stroke();
+            }
+
+            // Indicateur HP pour métal
+            if (b.isMetal) {
+              ctx.fillStyle = 'white';
+              ctx.font = 'bold 9px sans-serif';
+              ctx.fillText(b.hp.toString(), b.x + b.w/2 - 3, b.y + b.h/2 + 3);
+            }
+
+            if (b.hasPowerUp && !b.isMetal) {
+              ctx.fillStyle = 'white';
+              ctx.font = 'bold 10px sans-serif';
+              ctx.fillText('⭐', b.x + b.w/2 - 5, b.y + b.h/2 + 4);
+            }
+          }
+        });
+
+        // Falling powerups
+        fallingPowerUps.forEach(p => {
+          ctx.fillStyle = p.type === 'wide' ? '#22c55e' : p.type === 'slow' ? '#60a5fa' : '#f472b6';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillText(p.type === 'wide' ? '↔' : p.type === 'slow' ? '🐢' : '×2', p.x - 6, p.y + 4);
+        });
+
+        // Particles
+        const { particles } = gameRef.current;
+        particles.forEach(p => {
+          ctx.globalAlpha = p.life;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+
+        // UI
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText(`Niveau ${level + 1}`, 10, 20);
+        ctx.fillText(`Score: ${gameRef.current.score}`, W/2 - 30, 20);
+        ctx.fillText(`❤️×${currentLives}`, W - 50, 20);
+
+        // Affichage des power-ups actifs avec temps restant
+        let puY = 38;
+        if (pups.wide > 0) {
+          ctx.fillStyle = '#22c55e';
+          ctx.fillText(`↔ ${Math.ceil(pups.wide)}s`, 10, puY);
+          puY += 16;
+        }
+        if (pups.slow > 0) {
+          ctx.fillStyle = '#60a5fa';
+          ctx.fillText(`🐢 ${Math.ceil(pups.slow)}s`, 10, puY);
+        }
+
+        if (!ball.launched && gameState === 'ready') {
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.font = 'bold 16px sans-serif';
+          ctx.fillText('Clique pour lancer !', W/2 - 70, H/2);
+        }
+      };
+
+      useEffect(() => {
+        initLevel(level);
+      }, [level]);
+
+      // Timer pour décrémenter les power-ups actifs
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setPowerUps(prev => {
+            const next = { ...prev };
+            let changed = false;
+            if (next.wide > 0) { next.wide = Math.max(0, next.wide - 0.1); changed = true; }
+            if (next.slow > 0) { next.slow = Math.max(0, next.slow - 0.1); changed = true; }
+            return changed ? next : prev;
+          });
+        }, 100); // Décrémente toutes les 100ms
+        return () => clearInterval(interval);
+      }, []);
+
+      // Appliquer les power-ups sans réinitialiser le niveau
+      useEffect(() => {
+        powerUpsRef.current = powerUps;
+        if (!gameRef.current.paddle) return;
+        const { paddle, ball } = gameRef.current;
+        const wasWide = paddle.w === 120;
+        const shouldBeWide = powerUps.wide > 0;
+        if (wasWide !== shouldBeWide) {
+          paddle.w = shouldBeWide ? 120 : 90;
+        }
+        const wasSlow = ball.speed === 2;
+        const shouldBeSlow = powerUps.slow > 0;
+        if (wasSlow !== shouldBeSlow) {
+          const newSpeed = shouldBeSlow ? 2 : 2.5;
+          if (ball.launched) {
+            const ratio = newSpeed / ball.speed;
+            ball.dx *= ratio;
+            ball.dy *= ratio;
+          }
+          ball.speed = newSpeed;
+        }
+        if (!gameRef.current.running) draw();
+      }, [powerUps]);
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const handleMove = (clientX) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = (clientX - rect.left) * (canvas.width / rect.width);
+          const { paddle, ball, W } = gameRef.current;
+          paddle.x = Math.max(0, Math.min(W - paddle.w, x - paddle.w/2));
+          if (!ball.launched) {
+            ball.x = paddle.x + paddle.w/2;
+          }
+          if (!gameRef.current.running) draw();
+        };
+
+        const handleClick = () => {
+          if (gameState !== 'ready' || currentLives <= 0) return;
+          const { ball } = gameRef.current;
+          if (!ball.launched) {
+            ball.launched = true;
+            ball.dx = ball.speed * (Math.random() > 0.5 ? 1 : -1);
+            ball.dy = -ball.speed;
+            gameRef.current.running = true;
+            setGameState('playing');
+            gameLoop();
+          }
+        };
+
+        const handleMouse = (e) => handleMove(e.clientX);
+        const handleTouch = (e) => { e.preventDefault(); handleMove(e.touches[0].clientX); };
+        const handleTouchStart = (e) => { e.preventDefault(); handleClick(); };
+
+        canvas.addEventListener('mousemove', handleMouse);
+        canvas.addEventListener('click', handleClick);
+        canvas.addEventListener('touchmove', handleTouch, { passive: false });
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+
+        return () => {
+          canvas.removeEventListener('mousemove', handleMouse);
+          canvas.removeEventListener('click', handleClick);
+          canvas.removeEventListener('touchmove', handleTouch);
+          canvas.removeEventListener('touchstart', handleTouchStart);
+        };
+      }, [gameState, currentLives, level]);
+
+      const gameLoop = () => {
+        if (!gameRef.current.running) return;
+        const { paddle, ball, bricks, fallingPowerUps, particles, W, H } = gameRef.current;
+
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+
+        // Wall collision
+        if (ball.x - ball.r < 0 || ball.x + ball.r > W) ball.dx *= -1;
+        if (ball.y - ball.r < 0) ball.dy *= -1;
+
+        // Paddle collision
+        if (ball.y + ball.r > paddle.y && ball.y + ball.r < paddle.y + paddle.h + 5 &&
+            ball.x > paddle.x - ball.r && ball.x < paddle.x + paddle.w + ball.r) {
+          ball.dy = -Math.abs(ball.dy);
+          const hitPos = (ball.x - paddle.x) / paddle.w;
+          ball.dx = (hitPos - 0.5) * ball.speed * 2.5;
+        }
+
+        // Brick collision
+        bricks.forEach(b => {
+          if (b.alive &&
+              ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w &&
+              ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+            // Réduire HP
+            b.hp = (b.hp || 1) - 1;
+            ball.dy *= -1;
+
+            // Spawn particles
+            const color = b.isMetal ? '#9ca3af' : b.color;
+            const particleCount = b.hp <= 0 ? 12 : 4;
+            for (let i = 0; i < particleCount; i++) {
+              particles.push({
+                x: b.x + b.w / 2,
+                y: b.y + b.h / 2,
+                dx: (Math.random() - 0.5) * 4,
+                dy: (Math.random() - 0.5) * 4,
+                size: Math.random() * 4 + 2,
+                color: color,
+                life: 1
+              });
+            }
+
+            if (b.hp <= 0) {
+              b.alive = false;
+              gameRef.current.score += (b.isMetal ? 20 : 10) * (level + 1);
+              // Drop powerup
+              if (b.hasPowerUp) {
+                const types = ['wide', 'slow', 'wide'];
+                fallingPowerUps.push({ x: b.x + b.w/2, y: b.y, type: types[Math.floor(Math.random() * types.length)] });
+              }
+            } else {
+              // Points bonus pour toucher métal
+              gameRef.current.score += 5 * (level + 1);
+            }
+            setScore(gameRef.current.score);
+          }
+        });
+
+        // Update falling powerups
+        for (let i = fallingPowerUps.length - 1; i >= 0; i--) {
+          const p = fallingPowerUps[i];
+          p.y += 1;
+          if (p.y > paddle.y && p.y < paddle.y + paddle.h + 15 &&
+              p.x > paddle.x && p.x < paddle.x + paddle.w) {
+            // Ajouter 10 secondes au power-up (cumulable)
+            setPowerUps(prev => ({ ...prev, [p.type]: prev[p.type] + 10 }));
+            fallingPowerUps.splice(i, 1);
+          } else if (p.y > H) {
+            fallingPowerUps.splice(i, 1);
+          }
+        }
+
+        // Update particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.dx;
+          p.y += p.dy;
+          p.dy += 0.1; // gravity
+          p.life -= 0.03;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        // Check win
+        if (bricks.every(b => !b.alive)) {
+          gameRef.current.running = false;
+          if (level < LEVELS.length - 1) {
+            setGameState('levelComplete');
+          } else {
+            setGameState('won');
+          }
+          return;
+        }
+
+        // Ball lost
+        if (ball.y > H) {
+          gameRef.current.running = false;
+          const newLives = currentLives - 1;
+          setCurrentLives(newLives);
+          onLoseLife();
+          if (newLives <= 0) {
+            setGameState('lost');
+          } else {
+            ball.x = paddle.x + paddle.w/2;
+            ball.y = H - 50;
+            ball.dx = 0; ball.dy = 0;
+            ball.launched = false;
+            setGameState('ready');
+          }
+          return;
+        }
+
+        draw();
+        requestAnimationFrame(gameLoop);
+      };
+
+      const nextLevel = () => {
+        setLevel(l => l + 1);
+        setGameState('ready');
+      };
+
+      const restart = () => {
+        setLevel(0);
+        setScore(0);
+        gameRef.current.score = 0;
+        setCurrentLives(lives);
+        setPowerUp(null);
+        setGameState('ready');
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex flex-col items-center justify-center p-4">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-4 shadow-2xl border border-white/20">
+            <div className="flex justify-between items-center mb-3">
+              <button onClick={onExit} className="text-purple-300 hover:text-white transition text-sm">← Quitter</button>
+              <h2 className="text-lg font-bold text-white">🎮 {LEVELS[level % LEVELS.length].name}</h2>
+              <div className="text-purple-300 text-sm">Niv.{level + 1}</div>
+            </div>
+
+            {(powerUps.wide > 0 || powerUps.slow > 0) && (
+              <div className="flex justify-center gap-2 mb-2">
+                {powerUps.wide > 0 && (
+                  <div className="text-sm py-1 px-3 rounded-full bg-green-500/30 text-green-300">
+                    ↔️ {Math.ceil(powerUps.wide)}s
+                  </div>
+                )}
+                {powerUps.slow > 0 && (
+                  <div className="text-sm py-1 px-3 rounded-full bg-blue-500/30 text-blue-300">
+                    🐢 {Math.ceil(powerUps.slow)}s
+                  </div>
+                )}
+              </div>
+            )}
+
+            <canvas
+              ref={canvasRef}
+              className="rounded-xl bg-indigo-950 touch-none cursor-pointer"
+              style={{ maxWidth: '100%' }}
+            />
+
+            {gameState === 'levelComplete' && (
+              <div className="text-center mt-4 animate-pop">
+                <div className="text-4xl mb-2">🎉</div>
+                <div className="text-xl font-bold text-green-400 mb-2">Niveau {level + 1} terminé !</div>
+                <button onClick={nextLevel} className="px-6 py-3 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold">
+                  Niveau suivant →
+                </button>
+              </div>
+            )}
+
+            {gameState === 'won' && (
+              <div className="text-center mt-4 animate-pop">
+                <div className="text-4xl mb-2">🏆</div>
+                <div className="text-2xl font-bold text-yellow-400 mb-2">Tous les niveaux battus !</div>
+                <div className="text-purple-300 mb-4">Score final : {score}</div>
+                <button onClick={restart} className="px-6 py-3 rounded-xl bg-purple-500 text-white font-bold mr-2">
+                  Rejouer
+                </button>
+                <button onClick={onExit} className="px-6 py-3 rounded-xl bg-white/20 text-white font-bold">
+                  Quitter
+                </button>
+              </div>
+            )}
+
+            {gameState === 'lost' && (
+              <div className="text-center mt-4">
+                <div className="text-4xl mb-2">💔</div>
+                <div className="text-xl font-bold text-red-400 mb-2">Plus de vies !</div>
+                <div className="text-purple-300 mb-4">Score : {score}</div>
+                <button onClick={onExit} className="px-6 py-3 rounded-xl bg-purple-500 text-white font-bold">
+                  Retour
+                </button>
+              </div>
+            )}
+
+            <div className="mt-3 flex justify-between text-purple-300 text-xs">
+              <span>❤️ × {currentLives}</span>
+              <span>Score: {score}</span>
+            </div>
+          </div>
         </div>
       );
     }
@@ -603,10 +1401,33 @@
     }
 
     // ========== KIDS MENU ==========
-    function KidsMenuScreen({ onStart, onPuzzles, puzzleData, onBack }) {
+    function KidsMenuScreen({ onStart, onPuzzles, onBreakout, onCheatLives, puzzleData, onBack }) {
       const currentPuzzle = PUZZLES[puzzleData.currentPuzzle];
       const piecesCollected = puzzleData.puzzles[puzzleData.currentPuzzle].pieces.filter(p => p).length;
       const completedPuzzles = puzzleData.puzzles.filter(p => p.completed).length;
+      const totalLives = puzzleData.puzzles.reduce((sum, p) => sum + (p.lives || 0), 0);
+      const cheatBufferRef = React.useRef([]);
+
+      // Cheat code: triple $ pour accès direct au casse-brique
+      React.useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.key === '$') {
+            cheatBufferRef.current.push(Date.now());
+            // Garde seulement les 3 derniers
+            if (cheatBufferRef.current.length > 3) cheatBufferRef.current.shift();
+            // Vérifie si 3 $ en moins de 2 secondes
+            if (cheatBufferRef.current.length === 3) {
+              const timeDiff = cheatBufferRef.current[2] - cheatBufferRef.current[0];
+              if (timeDiff < 2000) {
+                onCheatLives && onCheatLives(99);
+                cheatBufferRef.current = [];
+              }
+            }
+          }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [onCheatLives]);
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
@@ -639,6 +1460,24 @@
               className="w-full py-5 mb-4 rounded-2xl font-bold text-2xl bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg hover:scale-[1.02] transition-all animate-pulse-slow"
             >
               🚀 Jouer !
+            </button>
+
+            {/* Breakout game button */}
+            <button
+              onClick={onBreakout}
+              disabled={totalLives === 0}
+              className={`w-full py-4 mb-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
+                totalLives > 0
+                  ? 'bg-gradient-to-r from-indigo-400 to-purple-500 text-white shadow-lg hover:scale-[1.02]'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              🎮 Casse-Brique
+              {totalLives > 0 ? (
+                <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">❤️ {totalLives}</span>
+              ) : (
+                <span className="text-sm font-normal">(Complète un puzzle !)</span>
+              )}
             </button>
 
             {/* View puzzles */}
@@ -1715,6 +2554,35 @@
       const goPuzzles = () => setScreen('puzzles');
       const goKidsConfig = () => setScreen('kids-config');
 
+      // Breakout game
+      const [breakoutLives, setBreakoutLives] = useState(0);
+      const goBreakout = () => {
+        const totalLives = puzzleData.puzzles.reduce((sum, p) => sum + (p.lives || 0), 0);
+        if (totalLives > 0) {
+          setBreakoutLives(totalLives);
+          setScreen('breakout');
+        }
+      };
+      const grantCheatLives = (amount) => {
+        const newPuzzles = JSON.parse(JSON.stringify(puzzleData));
+        newPuzzles.puzzles[0].lives = (newPuzzles.puzzles[0].lives || 0) + amount;
+        setPuzzleData(newPuzzles);
+        savePuzzleData(newPuzzles);
+      };
+      const loseBreakoutLife = () => {
+        // Find first puzzle with lives and decrement
+        const newPuzzles = JSON.parse(JSON.stringify(puzzleData));
+        for (let p of newPuzzles.puzzles) {
+          if (p.lives > 0) {
+            p.lives--;
+            break;
+          }
+        }
+        setPuzzleData(newPuzzles);
+        savePuzzles(newPuzzles);
+      };
+      const exitBreakout = () => setScreen('kids-menu');
+
       const selectMode = (selectedMode) => {
         setMode(selectedMode);
         setScreen('config');
@@ -1820,6 +2688,7 @@
             const allPiecesNow = currentPuzzlePieces.every(p => p);
             if (allPiecesNow) {
               newPuzzles.puzzles[currentPuzzleIdx].completed = true;
+              newPuzzles.puzzles[currentPuzzleIdx].lives = 5; // Gain 5 lives for breakout game!
               justCompleted = true;
 
               // Move to next incomplete puzzle
@@ -1900,8 +2769,9 @@
       if (screen === 'menu') return <MenuScreen onSelect={selectMode} onStats={goStats} stats={stats} onBack={goHome} />;
       if (screen === 'stats') return <StatsScreen stats={stats} onBack={goMenu} onReset={resetStats} />;
 
-      if (screen === 'kids-menu') return <KidsMenuScreen onStart={goKidsConfig} onPuzzles={goPuzzles} puzzleData={puzzleData} onBack={goHome} />;
+      if (screen === 'kids-menu') return <KidsMenuScreen onStart={goKidsConfig} onPuzzles={goPuzzles} onBreakout={goBreakout} onCheatLives={grantCheatLives} puzzleData={puzzleData} onBack={goHome} />;
       if (screen === 'kids-config') return <KidsConfig onStart={startKidsQuiz} onBack={goKidsMenu} />;
+      if (screen === 'breakout') return <BreakoutGame lives={breakoutLives} onLoseLife={loseBreakoutLife} onExit={exitBreakout} />;
       if (screen === 'kids-quiz') return <KidsQuizScreen questions={questions} onFinish={finishKidsQuiz} onMenu={goKidsMenu} />;
       if (screen === 'kids-result') return (
         <KidsResultScreen
