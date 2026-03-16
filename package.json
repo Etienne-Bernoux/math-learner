@@ -1,0 +1,16 @@
+{
+  "name": "math-learner",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npx playwright test",
+    "test:all": "vitest run && npx playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "playwright-bdd": "^8.5.0",
+    "vitest": "^3.1.1"
+  }
+}
